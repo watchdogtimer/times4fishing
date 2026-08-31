@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tide &amp; Moon — Fishing Windows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A2023;
+    --panel:#0F2A2E;
+    --panel-2:#123338;
+    --line: rgba(224,236,234,0.14);
+    --line-strong: rgba(224,236,234,0.28);
+    --foam:#E4EFEC;
+    --foam-dim: rgba(228,239,236,0.62);
+    --brass:#D6A24B;
+    --brass-dim: rgba(214,162,75,0.35);
+    --kelp:#4C8A7C;
+    --kelp-dim: rgba(76,138,124,0.35);
+    --tide-low:#7E97A0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(1200px 800px at 15% -10%, #123840 0%, transparent 60%), var(--ink);
+    color: var(--foam);
+    font-family: 'Work Sans', sans-serif;
+    line-height:1.5;
+    padding: 32px 20px 80px;
+    min-height:100vh;
+  }
+  .wrap{max-width: 920px; margin: 0 auto;}
+  header{
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 22px;
+    margin-bottom: 26px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap: 20px;
+    flex-wrap:wrap;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: clamp(28px, 4vw, 40px);
+    margin:0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header p{
+    margin:0;
+    max-width: 46ch;
+    color: var(--foam-dim);
+    font-size: 14.5px;
+  }
+  .moonlabel{
+    text-align:right;
+    font-family:'Fraunces', serif;
+    font-size:14px;
+    color: var(--brass);
+    white-space:nowrap;
+  }
+  .moonlabel .pct{font-size:26px; display:block; font-weight:600;}
+
+  .controls{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom: 24px;
+    padding: 14px 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+  }
+  .controls label{font-size:12.5px; color:var(--foam-dim); display:block; margin-bottom:3px;}
+  .controls input{
+    background: var(--panel-2);
+    border:1px solid var(--line-strong);
+    color: var(--foam);
+    padding:7px 9px;
+    font-family:'Work Sans',sans-serif;
+    font-size:13.5px;
+    width: 108px;
+  }
+  .controls button{
+    background: transparent;
+    border:1px solid var(--brass-dim);
+    color: var(--brass);
+    padding:8px 14px;
+    font-size:13px;
+    cursor:pointer;
+    font-family:'Work Sans',sans-serif;
+    align-self:flex-end;
+    height: 34px;
+  }
+  .controls button:hover{ border-color: var(--brass); }
+  .controls .place{font-size:13px; color:var(--foam-dim); align-self:flex-end; padding-bottom:8px;}
+
+  .legend{
+    display:flex; gap:18px; flex-wrap:wrap;
+    font-size:12px; color:var(--foam-dim);
+    margin-bottom:18px;
+  }
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .dot{width:9px;height:9px; display:inline-block; border-radius:50%;}
+  .dot.prime{background:var(--brass);}
+  .dot.major{background:var(--kelp);}
+  .dot.minor{background:var(--tide-low);}
+
+  .weekdays{
+    display:grid;
+    grid-template-columns: repeat(7,1fr);
+    font-size:11.5px;
+    color: var(--foam-dim);
+    padding: 0 2px 8px;
+    border-bottom:1px solid var(--line);
+    margin-bottom: 6px;
+  }
+  .weekdays div{text-align:center;}
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(7,1fr);
+    gap:1px;
+    background: var(--line);
+    border:1px solid var(--line);
+  }
+  .cell{
+    background: var(--panel);
+    min-height: 92px;
+    padding: 8px 8px 10px;
+    cursor:pointer;
+    position:relative;
+    transition: background .15s ease;
+  }
+  .cell:hover{ background: var(--panel-2); }
+  .cell.out-of-range{ opacity:0.28; cursor:default; }
+  .cell.out-of-range:hover{ background:var(--panel); }
+  .cell.selected{ outline: 1px solid var(--brass); outline-offset:-1px; background:var(--panel-2); }
+  .cell.today .num{ color: var(--brass); }
+  .cell .num{
+    font-family:'Fraunces', serif;
+    font-size:16px;
+    font-weight:500;
+  }
+  .cell .bestline{
+    font-size:11px;
+    color: var(--foam-dim);
+    margin-top: 20px;
+    line-height:1.35;
+  }
+  .cell .bestline b{ color: var(--brass); font-weight:600; }
+  .gauge{
+    position:absolute;
+    left:8px; right:8px; bottom:8px;
+    height:4px;
+    background: rgba(228,239,236,0.1);
+  }
+  .gauge i{
+    display:block; height:100%;
+    background: var(--kelp);
+  }
+  .gauge.prime i{ background: var(--brass); }
+
+  .detail{
+    margin-top: 26px;
+    border:1px solid var(--line);
+    background: var(--panel);
+    padding: 22px 24px;
+    display:none;
+  }
+  .detail.show{display:block;}
+  .detail h2{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:22px;
+    margin:0 0 4px;
+  }
+  .detail .sub{ color: var(--foam-dim); font-size:13px; margin-bottom: 18px;}
+  .cols{ display:grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  @media (max-width:640px){ .cols{grid-template-columns:1fr;} }
+  .fact{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13.5px;}
+  .fact span:first-child{ color: var(--foam-dim); }
+  .windows h3{ font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--foam-dim); font-weight:500; margin: 0 0 10px;}
+  .win-row{
+    display:flex; align-items:center; gap:10px;
+    padding: 8px 0; border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .win-row .tag{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.03em;
+    padding: 2px 6px; border:1px solid var(--line-strong); color:var(--foam-dim);
+  }
+  .win-row.prime .tag{ border-color: var(--brass); color: var(--brass); }
+  .win-row .time{ font-family:'Fraunces', serif; font-weight:500; min-width: 128px; }
+
+  details.about{ margin-top:34px; border-top:1px solid var(--line); padding-top: 16px; }
+  details.about summary{ cursor:pointer; color: var(--foam-dim); font-size:13px; }
+  details.about .body{ font-size:13.5px; color: var(--foam-dim); margin-top:12px; max-width:70ch;}
+  details.about .body p{ margin: 0 0 10px; }
+  details.about code{ background: var(--panel-2); padding:1px 5px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Tide &amp; Moon</h1>
+      <p>The next four weeks, ranked by when the sun and moon line up to put fish on the feed. No ads, no accounts — just the astronomy.</p>
+    </div>
+    <div class="moonlabel" id="moonToday">—</div>
+  </header>
+
+  <div class="controls">
+    <div>
+      <label>Latitude</label>
+      <input id="lat" type="text" value="32.7157">
+    </div>
+    <div>
+      <label>Longitude</label>
+      <input id="lon" type="text" value="-117.1611">
+    </div>
+    <button id="locate">Use my location</button>
+    <button id="recalc">Update</button>
+    <div class="place" id="place">San Diego, CA (default)</div>
+  </div>
+
+  <div class="legend">
+    <span><i class="dot prime"></i> Prime — major/minor period overlapping sunrise or sunset</span>
+    <span><i class="dot major"></i> Major period — moon overhead or underfoot</span>
+    <span><i class="dot minor"></i> Minor period — moonrise or moonset</span>
+  </div>
+
+  <div class="weekdays">
+    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <div class="detail" id="detail"></div>
+
+  <details class="about">
+    <summary>How the ratings are calculated</summary>
+    <div class="body">
+      <p><b>This tool computes solunar activity directly from astronomy</b> — the moon's and sun's real positions for your exact coordinates — the same underlying theory sites like Tides4Fishing build on. John Alden Knight's solunar theory (1926) holds that fish feed most during four daily windows: two <b>major periods</b> (~2 hrs, when the moon is directly overhead or directly underfoot) and two <b>minor periods</b> (~1 hr, at moonrise and moonset). Activity is thought to intensify further when a period overlaps sunrise or sunset, and around new and full moons when the sun and moon's pulls line up.</p>
+      <p>Each day's score sums its major and minor periods, weighted higher for majors, boosted for the sunrise/sunset overlap ("Prime"), and boosted again the closer the moon is to new or full. That produces the 0–5 rating you see on each day.</p>
+      <p><b>What's not included:</b> actual tide height and current — whether water is rising, falling, high, or low at a specific harbor — depends on that location's measured harmonic tide constituents, not on formulas alone. To fold real tide times in, pull them from a source like <code>NOAA CO-OPS</code> (US) or a tide API for your region and merge them with the windows below. Weather, barometric pressure, and water temperature also swing results and aren't modeled here.</p>
+      <p>All astronomical positions use standard low-precision solar and lunar orbital formulas (Meeus / Schlyter), accurate to roughly a minute or two for sunrise/sunset and a few minutes for moon events — plenty for planning a trip, not survey-grade.</p>
+    </div>
+  </details>
+
+</div>
+
+<script>
+/* ---------- Astronomy core (Sun/Moon low-precision formulas) ---------- */
+const DEG = Math.PI/180;
+const sind=x=>Math.sin(x*DEG), cosd=x=>Math.cos(x*DEG), tand=x=>Math.tan(x*DEG);
+const asind=x=>Math.asin(Math.max(-1,Math.min(1,x)))/DEG;
+const acosd=x=>Math.acos(Math.max(-1,Math.min(1,x)))/DEG;
+const atan2d=(y,x)=>Math.atan2(y,x)/DEG;
+const norm360=x=>{x=x%360; return x<0?x+360:x;};
+const norm24=x=>{x=x%24; return x<0?x+24:x;};
+
+function toDaysSinceEpoch(y,m,d,h){
+  // Julian Day minus 2451543.5 (1999-12-31 00:00 UT), per Schlyter's convention
+  if (m<=2){y-=1;m+=12;}
+  const A=Math.floor(y/100), B=2-A+Math.floor(A/4);
+  const JD=Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+h/24+B-1524.5;
+  return JD-2451543.5;
+}
+
+function sunEqCoords(d){
+  const w=norm360(282.9404+4.70935e-5*d), e=0.016709-1.151e-9*d;
+  let M=norm360(356.0470+0.9856002585*d);
+  const oblecl=23.4393-3.563e-7*d;
+  let E=M+(180/Math.PI)*e*sind(M)*(1+e*cosd(M));
+  for(let i=0;i<3;i++) E-= (E-(180/Math.PI)*e*sind(E)-M)/(1-e*cosd(E));
+  const xv=cosd(E)-e, yv=Math.sqrt(1-e*e)*sind(E);
+  const r=Math.sqrt(xv*xv+yv*yv), v=atan2d(yv,xv);
+  const lonsun=norm360(v+w);
+  const xs=r*cosd(lonsun), ys=r*sind(lonsun);
+  const xe=xs, ye=ys*cosd(oblecl), ze=ys*sind(oblecl);
+  return { ra: norm360(atan2d(ye,xe)), dec: asind(ze/r), lon: lonsun, r };
+}
+
+function moonEqCoords(d){
+  const N=norm360(125.1228-0.0529538083*d), i=5.1454;
+  const w=norm360(318.0634+0.1643573223*d), a=60.2666, e=0.054900;
+  let M=norm360(115.3654+13.0649929509*d);
+  let E=M+(180/Math.PI)*e*sind(M)*(1+e*cosd(M));
+  for(let k=0;k<4;k++) E-= (E-(180/Math.PI)*e*sind(E)-M)/(1-e*cosd(E));
+  const xv=a*(cosd(E)-e), yv=a*(Math.sqrt(1-e*e)*sind(E));
+  const rGeom=Math.sqrt(xv*xv+yv*yv), v=atan2d(yv,xv);
+  const xh=rGeom*(cosd(N)*cosd(v+w)-sind(N)*sind(v+w)*cosd(i));
+  const yh=rGeom*(sind(N)*cosd(v+w)+cosd(N)*sind(v+w)*cosd(i));
+  const zh=rGeom*(sind(v+w)*sind(i));
+  let lonecl=atan2d(yh,xh), latecl=atan2d(zh,Math.sqrt(xh*xh+yh*yh));
+  let r=Math.sqrt(xh*xh+yh*yh+zh*zh);
+
+  const sun=sunEqCoords(d);
+  const Ms=norm360(356.0470+0.9856002585*d);
+  const Lm=norm360(N+w+M);
+  const D=norm360(Lm-sun.lon), F=norm360(Lm-N), Mm=M;
+
+  let dLon=0;
+  dLon+=-1.274*sind(Mm-2*D); dLon+=0.658*sind(2*D); dLon+=-0.186*sind(Ms);
+  dLon+=-0.059*sind(2*Mm-2*D); dLon+=-0.057*sind(Mm-2*D+Ms); dLon+=0.053*sind(Mm+2*D);
+  dLon+=0.046*sind(2*D-Ms); dLon+=0.041*sind(Mm-Ms); dLon+=-0.035*sind(D);
+  dLon+=-0.031*sind(Mm+Ms); dLon+=-0.015*sind(2*F-2*D); dLon+=0.011*sind(Mm-4*D);
+
+  let dLat=0;
+  dLat+=-0.173*sind(F-2*D); dLat+=-0.055*sind(Mm-F-2*D); dLat+=-0.046*sind(Mm+F-2*D);
+  dLat+=0.033*sind(F+2*D); dLat+=0.017*sind(2*Mm+F);
+
+  let dR=0; dR+=-0.58*cosd(Mm-2*D); dR+=-0.46*cosd(2*D);
+
+  lonecl+=dLon; latecl+=dLat; r+=dR;
+
+  const oblecl=23.4393-3.563e-7*d;
+  const xh2=r*cosd(lonecl)*cosd(latecl), yh2=r*sind(lonecl)*cosd(latecl), zh2=r*sind(latecl);
+  const xe=xh2, ye=yh2*cosd(oblecl)-zh2*sind(oblecl), ze=yh2*sind(oblecl)+zh2*cosd(oblecl);
+  return { ra: norm360(atan2d(ye,xe)), dec: asind(ze/r), lon: norm360(lonecl), r };
+}
+
+// Generic event solver: haOffsetDeg fixed (transit=0, antitransit=180),
+// or riseSetSign = -1 (rise) / +1 (set) with an altitude threshold h0Deg.
+function solveEvent(y,m,day, lat, lonDeg, posFn, {haOffsetDeg=null, riseSetSign=null, h0Deg=null}={}){
+  const d0 = toDaysSinceEpoch(y,m,day,0);
+  let ut = 12;
+  for(let iter=0; iter<6; iter++){
+    const d = d0 + ut/24;
+    const sun = sunEqCoords(d);
+    const GMST0 = norm360(sun.lon + 180);
+    const pos = posFn(d);
+    let HA;
+    if (riseSetSign!==null){
+      const cosH0 = (sind(h0Deg) - sind(lat)*sind(pos.dec)) / (cosd(lat)*cosd(pos.dec));
+      if (cosH0>1 || cosH0<-1) return null; // doesn't rise/set this day at this latitude
+      HA = riseSetSign * acosd(cosH0);
+    } else {
+      HA = haOffsetDeg;
+    }
+    ut = norm24((pos.ra + HA - GMST0 - lonDeg)/15);
+  }
+  return ut;
+}
+
+function moonPhase(d){
+  const moon=moonEqCoords(d), sun=sunEqCoords(d);
+  const elong = Math.acos(sind(moon.dec)*sind(sun.dec)+cosd(moon.dec)*cosd(sun.dec)*cosd(moon.ra-sun.ra))/DEG;
+  const illum = (1-Math.cos(elong*DEG))/2; // 0=new,1=full
+  const waxing = norm360(moon.lon-sun.lon) < 180; // moon ahead of sun in ecliptic longitude
+  const age = norm360(moon.lon-sun.lon)/360; // 0..1 fraction of synodic month
+  let name;
+  const a = age*8;
+  if (a<0.5||a>=7.5) name="New Moon";
+  else if (a<1.5) name="Waxing Crescent";
+  else if (a<2.5) name="First Quarter";
+  else if (a<3.5) name="Waxing Gibbous";
+  else if (a<4.5) name="Full Moon";
+  else if (a<5.5) name="Waning Gibbous";
+  else if (a<6.5) name="Last Quarter";
+  else name="Waning Crescent";
+  return { illum, waxing, name };
+}
+
+/* ---------- Fishing-window scoring ---------- */
+function fmtLocal(hoursFloat){
+  if (hoursFloat===null||hoursFloat===undefined) return null;
+  let h = Math.floor(hoursFloat);
+  let m = Math.round((hoursFloat-h)*60);
+  if (m===60){ m=0; h+=1; }
+  h = ((h%24)+24)%24;
+  const ap = h<12 ? 'AM':'PM';
+  let h12 = h%12; if (h12===0) h12=12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ap}`;
+}
+function addHours(t,h){ return t===null?null : norm24(t+h); }
+function overlapsWithin(a,b,windowHrs){
+  if (a===null||b===null) return false;
+  let diff = Math.abs(a-b);
+  diff = Math.min(diff, 24-diff);
+  return diff <= windowHrs;
+}
+
+function computeDay(date, lat, lon, tzOffsetHours){
+  const y=date.getFullYear(), m=date.getMonth()+1, day=date.getDate();
+  // shift the "search day" by the local->UTC offset so returned hours are local clock time
+  const y0=y, m0=m, d0=day;
+  const off = tzOffsetHours/24;
+  const solve = (posFn, opts) => {
+    const raw = solveEvent(y0,m0,d0, lat, lon, posFn, opts);
+    return raw===null? null : raw; // already local-referenced via d0 trick below
+  };
+  // Wrap the day-index math to bake in the timezone offset (see writeup: local midnight expressed on the UTC julian-day axis)
+  const solveLocal = (posFn, opts) => {
+    const d0j = toDaysSinceEpoch(y0,m0,d0,0) + off;
+    let ut = 12;
+    for(let iter=0; iter<6; iter++){
+      const d = d0j + ut/24;
+      const sun = sunEqCoords(d);
+      const GMST0 = norm360(sun.lon+180);
+      const pos = posFn(d);
+      let HA;
+      if (opts.riseSetSign!==null && opts.riseSetSign!==undefined){
+        const cosH0 = (sind(opts.h0Deg)-sind(lat)*sind(pos.dec))/(cosd(lat)*cosd(pos.dec));
+        if (cosH0>1||cosH0<-1) return null;
+        HA = opts.riseSetSign*acosd(cosH0);
+      } else {
+        HA = opts.haOffsetDeg;
+      }
+      ut = norm24((pos.ra+HA-GMST0-lon)/15);
+    }
+    return ut;
+  };
+
+  const sunrise = solveLocal(sunEqCoords, {riseSetSign:-1, h0Deg:-0.833});
+  const sunset  = solveLocal(sunEqCoords, {riseSetSign:1,  h0Deg:-0.833});
+  const moonrise= solveLocal(moonEqCoords,{riseSetSign:-1, h0Deg:0.125});
+  const moonset = solveLocal(moonEqCoords,{riseSetSign:1,  h0Deg:0.125});
+  const upperTransit = solveLocal(moonEqCoords, {haOffsetDeg:0});
+  const lowerTransit = solveLocal(moonEqCoords, {haOffsetDeg:180});
+
+  const phase = moonPhase(toDaysSinceEpoch(y0,m0,d0,12)+off);
+  const extremeness = Math.abs(2*phase.illum-1); // 1 at new/full, 0 at quarters
+  const phaseMult = 1 + 0.3*extremeness;
+
+  const windows = [];
+  function addWindow(kind, center, halfSpan, baseScore){
+    if (center===null) return;
+    const start = addHours(center,-halfSpan), end = addHours(center,halfSpan);
+    const prime = overlapsWithin(center, sunrise, 0.5) || overlapsWithin(center, sunset, 0.5);
+    const score = (baseScore*phaseMult) + (prime? (kind==='Major'?2:1) : 0);
+    windows.push({kind, start, end, center, prime, score});
+  }
+  addWindow('Major', upperTransit, 1, 3);
+  addWindow('Major', lowerTransit, 1, 3);
+  addWindow('Minor', moonrise, 0.5, 2);
+  addWindow('Minor', moonset, 0.5, 2);
+
+  const rawScore = windows.reduce((s,w)=>s+w.score,0);
+  const MAX_PER_DAY = 2*(3*1.3+2) + 2*(2*1.3+1); // ~19, used to normalize to a 0-5 scale
+  const rating = Math.max(0, Math.min(5, Math.round((rawScore/MAX_PER_DAY)*5)));
+
+  windows.sort((a,b)=> (a.start??99)-(b.start??99));
+
+  return { date, sunrise, sunset, moonrise, moonset, upperTransit, lowerTransit, phase, windows, rating };
+}
+
+/* ---------- UI ---------- */
+let currentData = [];
+const tzOffsetHours = new Date().getTimezoneOffset()/60; // UTC = local + this many hours
+
+function buildCalendar(lat, lon){
+  const grid = document.getElementById('grid');
+  grid.innerHTML='';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const rangeEnd = new Date(today); rangeEnd.setDate(rangeEnd.getDate()+27);
+  const gridStart = new Date(today); gridStart.setDate(gridStart.getDate()-gridStart.getDay());
+  const gridEnd = new Date(rangeEnd); gridEnd.setDate(gridEnd.getDate()+(6-gridEnd.getDay()));
+
+  currentData = [];
+  let cursor = new Date(gridStart);
+  while (cursor<=gridEnd){
+    const d = new Date(cursor);
+    const inRange = d>=today && d<=rangeEnd;
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (inRange? '' : ' out-of-range') + (sameDay(d,today)?' today':'');
+    if (inRange){
+      const info = computeDay(d, lat, lon, tzOffsetHours);
+      currentData.push(info);
+      const bestWin = info.windows.filter(w=>w.start!==null).sort((a,b)=>b.score-a.score)[0];
+      cell.innerHTML = `
+        <div class="num">${d.getDate()}</div>
+        <div class="bestline">${bestWin? (bestWin.prime? '<b>Prime</b> · ':'')+fmtLocal(bestWin.start) : '—'}</div>
+        <div class="gauge${bestWin&&bestWin.prime?' prime':''}"><i style="width:${info.rating/5*100}%"></i></div>
+      `;
+      cell.addEventListener('click', ()=> showDetail(info, cell));
+    } else {
+      cell.innerHTML = `<div class="num">${d.getDate()}</div>`;
+    }
+    grid.appendChild(cell);
+    cursor.setDate(cursor.getDate()+1);
+  }
+
+  // headline: today's moon
+  const todayInfo = currentData[0];
+  if (todayInfo){
+    document.getElementById('moonToday').innerHTML =
+      `${todayInfo.phase.name}<span class="pct">${Math.round(todayInfo.phase.illum*100)}%</span>`;
+  }
+}
+
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+
+function showDetail(info, cellEl){
+  document.querySelectorAll('.cell').forEach(c=>c.classList.remove('selected'));
+  cellEl.classList.add('selected');
+  const det = document.getElementById('detail');
+  det.classList.add('show');
+  const dateStr = info.date.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+  const winRows = info.windows.filter(w=>w.start!==null).map(w=>`
+    <div class="win-row${w.prime?' prime':''}">
+      <span class="tag">${w.kind}</span>
+      <span class="time">${fmtLocal(w.start)} – ${fmtLocal(w.end)}</span>
+      <span>${w.prime? 'overlaps sunrise/sunset — strongest window of the day' : ''}</span>
+    </div>`).join('');
+  det.innerHTML = `
+    <h2>${dateStr}</h2>
+    <div class="sub">Rating ${info.rating} / 5 · ${info.phase.name} (${Math.round(info.phase.illum*100)}% illuminated)</div>
+    <div class="cols">
+      <div>
+        <div class="fact"><span>Sunrise</span><span>${fmtLocal(info.sunrise)||'—'}</span></div>
+        <div class="fact"><span>Sunset</span><span>${fmtLocal(info.sunset)||'—'}</span></div>
+        <div class="fact"><span>Moonrise</span><span>${fmtLocal(info.moonrise)||'—'}</span></div>
+        <div class="fact"><span>Moonset</span><span>${fmtLocal(info.moonset)||'—'}</span></div>
+        <div class="fact"><span>Moon overhead (major)</span><span>${fmtLocal(info.upperTransit)||'—'}</span></div>
+        <div class="fact"><span>Moon underfoot (major)</span><span>${fmtLocal(info.lowerTransit)||'—'}</span></div>
+      </div>
+      <div class="windows">
+        <h3>Best windows today</h3>
+        ${winRows || '<p style="color:var(--foam-dim);font-size:13px;">No events computed for this location/date.</p>'}
+      </div>
+    </div>
+  `;
+}
+
+document.getElementById('recalc').addEventListener('click', ()=>{
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lon = parseFloat(document.getElementById('lon').value);
+  if (isNaN(lat)||isNaN(lon)) return;
+  document.getElementById('detail').classList.remove('show');
+  buildCalendar(lat, lon);
+});
+
+document.getElementById('locate').addEventListener('click', ()=>{
+  if (!navigator.geolocation){ alert('Geolocation not available in this browser.'); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById('lat').value = pos.coords.latitude.toFixed(4);
+    document.getElementById('lon').value = pos.coords.longitude.toFixed(4);
+    document.getElementById('place').textContent = 'Your current location';
+    document.getElementById('recalc').click();
+  }, err=>{ alert('Could not get your location: '+err.message); });
+});
+
+buildCalendar(32.7157, -117.1611);
+</script>
+</body>
+</html>
