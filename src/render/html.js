@@ -112,6 +112,21 @@ ${body}
  * @param {object|null} options.best
  * @param {boolean} [options.noindex] Set on anything that isn't the real site.
  */
+/**
+ * The hand-written notes for this place, on the site they were written for.
+ *
+ * Keyed by profile because one page serves two sites: "the reef flats are
+ * heavily trampled, watch your feet" is guidance for a tidepooler and noise for
+ * an angler, and a note about tidepooling season on a fishing page is worse
+ * than nothing. A site with nothing to say about a place says nothing.
+ */
+function renderLocalNotes(profile, location) {
+  return [location.notes?.[profile.id], location.seasons?.[profile.id]]
+    .filter(Boolean)
+    .map((text) => `<p class="blurb">${escapeHtml(text)}</p>`)
+    .join('');
+}
+
 export function renderLocationPage({ profile, location, days, best, noindex }) {
   const place = `${location.name}, ${location.region}`;
   const canonical = `${canonicalOrigin(profile)}/${profile.pathPrefix}/${location.slug}/`;
@@ -127,7 +142,7 @@ export function renderLocationPage({ profile, location, days, best, noindex }) {
     </div>
   </header>
 
-  ${location.blurb ? `<p class="blurb">${escapeHtml(location.blurb)}</p>` : ''}
+  ${renderLocalNotes(profile, location)}
 
   <h2>Day by day, ${escapeHtml(range)}</h2>
   ${renderDayTable(profile, days, location)}

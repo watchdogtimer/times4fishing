@@ -75,6 +75,10 @@ function renderWeather(weather, waterTempF) {
     }
     if (weather.cloudPercent !== null) parts.push(`${weather.cloudPercent}% cloud`);
     if (weather.precipPercent) parts.push(`${weather.precipPercent}% chance of rain`);
+    if (weather.waveFt !== null && weather.waveFt !== undefined) {
+      const period = weather.swellPeriodS ? ` at ${Math.round(weather.swellPeriodS)}s` : '';
+      parts.push(`surf ${Math.round(weather.waveFt)} ft${period}`);
+    }
   }
   if (waterTempF !== null && waterTempF !== undefined) parts.push(`water ${waterTempF}°`);
 

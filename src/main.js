@@ -17,6 +17,7 @@ import {
   sampleTideCurve,
 } from './core/tides.js';
 import { addDays, isSameDay, startOfDay, toDateKey } from './core/time.js';
+import { nearestMarinePoint } from './locations.js';
 import { loadSettings, saveSettings } from './core/settings.js';
 import { emptyOutlook, fetchWeatherOutlook } from './core/weather.js';
 import { stationTideStats } from './profiles/tidepooling.js';
@@ -220,6 +221,9 @@ async function loadWeather() {
       latitude: state.latitude,
       longitude: state.longitude,
       stationId: state.stationId,
+      // Only the curated locations know where their water is, so anyone far
+      // from one simply gets no surf line rather than a guessed one.
+      marine: nearestMarinePoint(state.latitude, state.longitude),
     });
   } catch {
     state.weather = emptyOutlook();

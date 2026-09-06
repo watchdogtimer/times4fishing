@@ -14,10 +14,18 @@
  * useless for planning. It's an overlay: shown where it exists, absent where it
  * doesn't, and never part of the arithmetic.
  *
- * Wave height is deliberately not read here. It exists in the gridpoint
- * response but comes back degenerate at coastal land points (a single zero
- * spanning the whole week), and a surf number that's silently wrong is worse
- * than no surf number on a page people might make a safety call from.
+ * Wave height comes from a second gridpoint, offshore. NWS carries a wave
+ * series at the land coordinate too, but there it is all zeros — the grid is
+ * telling the truth about the surf on dry land. Asked a few kilometres out to
+ * sea, the same endpoint returns a real forecast. That is why every curated
+ * location carries a hand-picked `marine` point: there is no dependable way to
+ * work out which way is seaward from a coastal coordinate, and a silently-zero
+ * surf number is worse than none on a page someone makes a safety call from.
+ *
+ * Like the rest of this file it never feeds the rating. On the Pacific the best
+ * winter lows and the worst winter swell arrive together, so scoring surf would
+ * cancel out the very days the tide model is pointing at. It is shown so the
+ * reader can make that call themselves.
  */
 
 const POINTS_URL = 'https://api.weather.gov/points';
@@ -35,6 +43,10 @@ const WATER_TEMPERATURE_URL = 'https://api.tidesandcurrents.noaa.gov/api/prod/da
  * @property {number|null} gustMph
  * @property {number|null} cloudPercent Mean sky cover.
  * @property {number|null} precipPercent Highest chance of precipitation.
+ * @property {number|null} waveFt      Largest significant wave height in the day.
+ * @property {number|null} swellPeriodS Longest dominant wave period. Long-period
+ *   swell carries far more energy at the same height, which is what turns a
+ *   walkable reef into a dangerous one.
  */
 
 /**
@@ -62,21 +74,86 @@ export function emptyOutlook() {
  * @param {string} [options.stationId] NOAA station, for water temperature.
  * @returns {Promise<WeatherOutlook>}
  */
-export async function fetchWeatherOutlook({ latitude, longitude, stationId }) {
-  const [forecast, waterTemp] = await Promise.allSettled([
+export async function fetchWeatherOutlook({ latitude, longitude, stationId, marine }) {
+  const [forecast, waterTemp, waves] = await Promise.allSettled([
     fetchGridForecast(latitude, longitude),
     stationId ? fetchWaterTemperature(stationId) : Promise.resolve(null),
+    marine ? fetchWaveForecast(marine) : Promise.resolve({}),
   ]);
 
   if (forecast.status === 'rejected') {
     return { ...emptyOutlook(), error: forecast.reason?.message ?? 'weather unavailable' };
   }
 
+  // Waves are the most optional part of an already optional overlay, so a
+  // failure there leaves the rest of the forecast standing.
+  const byWaveDate = waves.status === 'fulfilled' ? waves.value : {};
+  const byDate = {};
+  for (const dateKey of new Set([...Object.keys(forecast.value), ...Object.keys(byWaveDate)])) {
+    byDate[dateKey] = {
+      ...emptyDay(),
+      ...forecast.value[dateKey],
+      ...byWaveDate[dateKey],
+    };
+  }
+
   return {
-    byDate: forecast.value,
+    byDate,
     waterTempF: waterTemp.status === 'fulfilled' ? waterTemp.value : null,
     error: null,
   };
+}
+
+/** Every field a DayWeather can carry, so a partial day still has known keys. */
+function emptyDay() {
+  return {
+    highF: null, lowF: null, windMph: null, gustMph: null,
+    cloudPercent: null, precipPercent: null, waveFt: null, swellPeriodS: null,
+  };
+}
+
+/**
+ * The wave series from an offshore gridpoint.
+ *
+ * Coarse by nature: whole feet, several hours apart, and often only a handful
+ * of points across the week. Good enough for "there is a big swell running",
+ * not for anything finer, which is why the UI shows it as a number and never
+ * interpolates between them.
+ *
+ * @param {{latitude: number, longitude: number}} marine
+ * @returns {Promise<Record<string, {waveFt: number|null, swellPeriodS: number|null}>>}
+ */
+async function fetchWaveForecast({ latitude, longitude }) {
+  const point = await getJson(`${POINTS_URL}/${latitude.toFixed(4)},${longitude.toFixed(4)}`);
+  const gridUrl = point?.properties?.forecastGridData;
+  if (!gridUrl) return {};
+
+  const properties = (await getJson(gridUrl))?.properties ?? {};
+  const byDate = {};
+  const collect = (seriesName, field, convert) => {
+    for (const [dateKey, value] of expandSeries(properties[seriesName])) {
+      (byDate[dateKey] ??= {})[field] ??= [];
+      byDate[dateKey][field].push(convert(value));
+    }
+  };
+
+  collect('waveHeight', 'waves', metresToFeet);
+  collect('wavePeriod', 'periods', (value) => value);
+
+  return Object.fromEntries(
+    Object.entries(byDate).map(([dateKey, raw]) => [
+      dateKey,
+      { waveFt: highest(raw.waves), swellPeriodS: highest(raw.periods) },
+    ]),
+  );
+}
+
+const metresToFeet = (metres) => metres * 3.28084;
+
+/** Largest value in a series, or null if there wasn't one. */
+function highest(values) {
+  const usable = (values ?? []).filter((value) => Number.isFinite(value));
+  return usable.length ? Math.max(...usable) : null;
 }
 
 /** Resolve the point to a grid, then pull the raw series and fold it by day. */
