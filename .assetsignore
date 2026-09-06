@@ -8,3 +8,5 @@ package.json
 package-lock.json
 .gitignore
 src/worker.js
+test
+scripts

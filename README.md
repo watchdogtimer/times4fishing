@@ -169,6 +169,42 @@ comes back degenerate at coastal land points — a single zero spanning the whol
 week — and a surf number that's silently wrong is worse than none on a page
 someone might make a safety call from. NDBC buoys are the likely answer.
 
+## Working on this
+
+```bash
+npm install
+npm test      # 30 tests, no network, ~90ms
+npm run dev   # both sites on localhost:8787
+npm run check # tests + a dry-run deploy, before you push
+```
+
+**Run the tests before you push, because pushing is releasing.** Set the deploy
+command in Workers Builds to `npm run deploy`, which runs them first and aborts
+the deploy if they fail. That single setting is most of what a release process
+would have bought, without the ceremony.
+
+The suite is deliberately narrow. It doesn't test the DOM, the chart, or
+anything that fails loudly — a broken view is obvious the moment you look at it.
+It tests the things that break *silently*:
+
+- **Golden forecasts.** Real output from a frozen month of NOAA predictions for
+  San Diego. Nothing here throws when it's wrong; a shifted rating just quietly
+  recommends a different day. When a scoring change is deliberate, run
+  `npm run golden` and read the diff — that diff is the change's actual effect
+  on what the site tells people, which is otherwise nearly impossible to see.
+- **Profile invariants**, run against the registry rather than a list, so a
+  third site inherits the whole suite the moment it lands in `config.js`. This
+  is the one that matters most now that two models share a core: it's entirely
+  possible to break tidepooling while looking at fishing.
+- **Timezones**, because every bug there is invisible on a laptop in the same
+  zone as the location being tested.
+- **Profile selection**, including the assertion that `?profile=` is refused on
+  the production hostnames.
+
+The fixture and the golden file are committed on purpose. A suite that can fail
+because NOAA is having a bad morning is one people learn to ignore, and this one
+gates deploys.
+
 ## Deployment
 
 **Pushing to `main` deploys.** Cloudflare Workers Builds watches the repo, so
@@ -178,10 +214,18 @@ reaches `origin/main` is live within a few minutes. A failed build is harmless
 production.
 
 `wrangler` is pinned in `devDependencies` so the build uses a version known to
-understand this config; `npx wrangler deploy --dry-run` locally checks it before
-you push. `.assetsignore` keeps `node_modules`, `package.json`, the README and
-`src/worker.js` itself out of the served bundle — worth re-checking with a local
-`wrangler dev` if you ever add a file that shouldn't be public.
+understand this config; `npm run check` verifies it before you push.
+
+`.assetsignore` keeps `node_modules`, `package.json`, `test/`, `scripts/`, the
+README and `src/worker.js` itself out of the served bundle. **Re-check it with a
+local `wrangler dev` whenever you add a top-level file or directory** — the
+asset root is the repo root, so anything new is public by default. Curl it and
+expect a 404.
+
+The page cache key carries the deployment version (`version_metadata`), because
+`caches.default` outlives a deploy. Without that, a fix to any server-rendered
+page would sit invisible behind the stale copy until that location's midnight —
+tolerable if releases were rare, quietly maddening when every push is one.
 
 One Worker, two custom domains. It's still named `times4fishing` because that's
 the Worker the live domain is already attached to; renaming it would quietly

@@ -6,6 +6,10 @@
   "name": "times4fishing",
   "main": "src/worker.js",
   "compatibility_date": "2026-08-28",
+  // Exposes this deployment's version id, which goes into the page cache key.
+  // Without it a deploy is invisible on any page still inside its cache window,
+  // and those windows run to local midnight.
+  "version_metadata": { "binding": "VERSION" },
   "assets": {
     "directory": ".",
     "binding": "ASSETS",

@@ -1,0 +1,1359 @@
+{
+ "fishing": [
+  {
+   "date": "2026-01-01",
+   "rating": 2,
+   "score": 8.100269,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 9.154955
+   }
+  },
+  {
+   "date": "2026-01-02",
+   "rating": 4,
+   "score": 10.522209,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 10.270861
+   }
+  },
+  {
+   "date": "2026-01-03",
+   "rating": 3,
+   "score": 10.084554,
+   "windows": 3,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 11.353556
+   }
+  },
+  {
+   "date": "2026-01-04",
+   "rating": 3,
+   "score": 9.749191,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 12.355477
+   }
+  },
+  {
+   "date": "2026-01-05",
+   "rating": 3,
+   "score": 9.523134,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 13.260515
+   }
+  },
+  {
+   "date": "2026-01-06",
+   "rating": 3,
+   "score": 9.207689,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 14.077901
+   }
+  },
+  {
+   "date": "2026-01-07",
+   "rating": 2,
+   "score": 8.110476,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 14.828955
+   }
+  },
+  {
+   "date": "2026-01-08",
+   "rating": 3,
+   "score": 8.637526,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 15.537965
+   }
+  },
+  {
+   "date": "2026-01-09",
+   "rating": 2,
+   "score": 8.289979,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 16.228187
+   }
+  },
+  {
+   "date": "2026-01-10",
+   "rating": 1,
+   "score": 6.350103,
+   "windows": 3,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 16.920609
+   }
+  },
+  {
+   "date": "2026-01-11",
+   "rating": 3,
+   "score": 9.03064,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 17.633434
+   }
+  },
+  {
+   "date": "2026-01-12",
+   "rating": 5,
+   "score": 13.911751,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 6.002195
+   }
+  },
+  {
+   "date": "2026-01-13",
+   "rating": 5,
+   "score": 12.324743,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 19.172001
+   }
+  },
+  {
+   "date": "2026-01-14",
+   "rating": 4,
+   "score": 11.179274,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 7.584052
+   }
+  },
+  {
+   "date": "2026-01-15",
+   "rating": 3,
+   "score": 10.183026,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 8.436168
+   }
+  },
+  {
+   "date": "2026-01-16",
+   "rating": 3,
+   "score": 9.038705,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 9.311266
+   }
+  },
+  {
+   "date": "2026-01-17",
+   "rating": 3,
+   "score": 9.419222,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 10.1869
+   }
+  },
+  {
+   "date": "2026-01-18",
+   "rating": 4,
+   "score": 11.096412,
+   "windows": 3,
+   "best": {
+    "label": "Moon overhead",
+    "start": 11.041769
+   }
+  },
+  {
+   "date": "2026-01-19",
+   "rating": 3,
+   "score": 9.830944,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 11.862673
+   }
+  },
+  {
+   "date": "2026-01-20",
+   "rating": 3,
+   "score": 9.691168,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 12.647285
+   }
+  },
+  {
+   "date": "2026-01-21",
+   "rating": 3,
+   "score": 9.458181,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 13.402996
+   }
+  },
+  {
+   "date": "2026-01-22",
+   "rating": 3,
+   "score": 9.138223,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 14.144329
+   }
+  },
+  {
+   "date": "2026-01-23",
+   "rating": 2,
+   "score": 7.18797,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 14.890696
+   }
+  },
+  {
+   "date": "2026-01-24",
+   "rating": 1,
+   "score": 6.541268,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 15.664754
+   }
+  },
+  {
+   "date": "2026-01-25",
+   "rating": 2,
+   "score": 7.824039,
+   "windows": 3,
+   "best": {
+    "label": "Moon overhead",
+    "start": 16.490389
+   }
+  },
+  {
+   "date": "2026-01-26",
+   "rating": 2,
+   "score": 7.422138,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 17.388484
+   }
+  },
+  {
+   "date": "2026-01-27",
+   "rating": 4,
+   "score": 12.041488,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 5.86846
+   }
+  },
+  {
+   "date": "2026-01-28",
+   "rating": 4,
+   "score": 10.838936,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 6.886664
+   }
+  },
+  {
+   "date": "2026-01-29",
+   "rating": 4,
+   "score": 10.550648,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 7.957425
+   }
+  },
+  {
+   "date": "2026-01-30",
+   "rating": 2,
+   "score": 8.265135,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 9.031104
+   }
+  },
+  {
+   "date": "2026-01-31",
+   "rating": 3,
+   "score": 8.777842,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 10.056267
+   }
+  },
+  {
+   "date": "2026-02-01",
+   "rating": 4,
+   "score": 11.097706,
+   "windows": 3,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 11.0022
+   }
+  },
+  {
+   "date": "2026-02-02",
+   "rating": 3,
+   "score": 9.831855,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 11.86427
+   }
+  },
+  {
+   "date": "2026-02-03",
+   "rating": 3,
+   "score": 9.677198,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 12.655432
+   }
+  },
+  {
+   "date": "2026-02-04",
+   "rating": 3,
+   "score": 9.430251,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 13.396185
+   }
+  },
+  {
+   "date": "2026-02-05",
+   "rating": 3,
+   "score": 8.934398,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 14.108517
+   }
+  },
+  {
+   "date": "2026-02-06",
+   "rating": 2,
+   "score": 6.898294,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 14.813281
+   }
+  },
+  {
+   "date": "2026-02-07",
+   "rating": 1,
+   "score": 6.576353,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 15.529101
+   }
+  },
+  {
+   "date": "2026-02-08",
+   "rating": 2,
+   "score": 7.823302,
+   "windows": 3,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 16.271378
+   }
+  },
+  {
+   "date": "2026-02-09",
+   "rating": 2,
+   "score": 7.902612,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 17.05063
+   }
+  },
+  {
+   "date": "2026-02-10",
+   "rating": 4,
+   "score": 10.876039,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 5.45549
+   }
+  },
+  {
+   "date": "2026-02-11",
+   "rating": 4,
+   "score": 11.961408,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 18.723795
+   }
+  },
+  {
+   "date": "2026-02-12",
+   "rating": 5,
+   "score": 12.375627,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 19.59656
+   }
+  },
+  {
+   "date": "2026-02-13",
+   "rating": 4,
+   "score": 10.556046,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 8.033853
+   }
+  },
+  {
+   "date": "2026-02-14",
+   "rating": 3,
+   "score": 8.553582,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 8.898014
+   }
+  }
+ ],
+ "fishingAllHours": [
+  {
+   "date": "2026-01-01",
+   "rating": 3,
+   "score": 12.767911,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 9.154955
+   }
+  },
+  {
+   "date": "2026-01-02",
+   "rating": 4,
+   "score": 13.959973,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 10.270861
+   }
+  },
+  {
+   "date": "2026-01-03",
+   "rating": 1,
+   "score": 10.084554,
+   "windows": 3,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 11.353556
+   }
+  },
+  {
+   "date": "2026-01-04",
+   "rating": 3,
+   "score": 12.827883,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 12.355477
+   }
+  },
+  {
+   "date": "2026-01-05",
+   "rating": 3,
+   "score": 12.530439,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 0.819962
+   }
+  },
+  {
+   "date": "2026-01-06",
+   "rating": 2,
+   "score": 12.115381,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 1.678979
+   }
+  },
+  {
+   "date": "2026-01-07",
+   "rating": 2,
+   "score": 11.615636,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 2.460204
+   }
+  },
+  {
+   "date": "2026-01-08",
+   "rating": 3,
+   "score": 13.062543,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 15.537965
+   }
+  },
+  {
+   "date": "2026-01-09",
+   "rating": 3,
+   "score": 12.483298,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 16.228187
+   }
+  },
+  {
+   "date": "2026-01-10",
+   "rating": 0,
+   "score": 8.07966,
+   "windows": 3,
+   "best": {
+    "label": "Moon overhead",
+    "start": 4.572913
+   }
+  },
+  {
+   "date": "2026-01-11",
+   "rating": 2,
+   "score": 11.667472,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 5.273464
+   }
+  },
+  {
+   "date": "2026-01-12",
+   "rating": 5,
+   "score": 15.704466,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 6.002195
+   }
+  },
+  {
+   "date": "2026-01-13",
+   "rating": 4,
+   "score": 14.196123,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 19.172001
+   }
+  },
+  {
+   "date": "2026-01-14",
+   "rating": 3,
+   "score": 13.128607,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 7.584052
+   }
+  },
+  {
+   "date": "2026-01-15",
+   "rating": 3,
+   "score": 13.488155,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 8.436168
+   }
+  },
+  {
+   "date": "2026-01-16",
+   "rating": 3,
+   "score": 13.760996,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 9.311266
+   }
+  },
+  {
+   "date": "2026-01-17",
+   "rating": 3,
+   "score": 12.933824,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 10.1869
+   }
+  },
+  {
+   "date": "2026-01-18",
+   "rating": 2,
+   "score": 11.096412,
+   "windows": 3,
+   "best": {
+    "label": "Moon overhead",
+    "start": 11.041769
+   }
+  },
+  {
+   "date": "2026-01-19",
+   "rating": 3,
+   "score": 12.935453,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 11.862673
+   }
+  },
+  {
+   "date": "2026-01-20",
+   "rating": 3,
+   "score": 12.751537,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 0.259252
+   }
+  },
+  {
+   "date": "2026-01-21",
+   "rating": 3,
+   "score": 12.444976,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 1.027982
+   }
+  },
+  {
+   "date": "2026-01-22",
+   "rating": 2,
+   "score": 12.023978,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 1.77434
+   }
+  },
+  {
+   "date": "2026-01-23",
+   "rating": 2,
+   "score": 11.502959,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 2.515525
+   }
+  },
+  {
+   "date": "2026-01-24",
+   "rating": 2,
+   "score": 10.902113,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 3.272766
+   }
+  },
+  {
+   "date": "2026-01-25",
+   "rating": 1,
+   "score": 10.197662,
+   "windows": 3,
+   "best": {
+    "label": "Moon overhead",
+    "start": 16.490389
+   }
+  },
+  {
+   "date": "2026-01-26",
+   "rating": 1,
+   "score": 10.43129,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 4.929386
+   }
+  },
+  {
+   "date": "2026-01-27",
+   "rating": 4,
+   "score": 14.09749,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 5.86846
+   }
+  },
+  {
+   "date": "2026-01-28",
+   "rating": 3,
+   "score": 12.713019,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 6.886664
+   }
+  },
+  {
+   "date": "2026-01-29",
+   "rating": 3,
+   "score": 13.239514,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 7.957425
+   }
+  },
+  {
+   "date": "2026-01-30",
+   "rating": 3,
+   "score": 12.643195,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 9.031104
+   }
+  },
+  {
+   "date": "2026-01-31",
+   "rating": 3,
+   "score": 12.899536,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 10.056267
+   }
+  },
+  {
+   "date": "2026-02-01",
+   "rating": 2,
+   "score": 11.097706,
+   "windows": 3,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 11.0022
+   }
+  },
+  {
+   "date": "2026-02-02",
+   "rating": 3,
+   "score": 12.936651,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 11.86427
+   }
+  },
+  {
+   "date": "2026-02-03",
+   "rating": 3,
+   "score": 12.733155,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 0.267517
+   }
+  },
+  {
+   "date": "2026-02-04",
+   "rating": 3,
+   "score": 12.408225,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 1.030727
+   }
+  },
+  {
+   "date": "2026-02-05",
+   "rating": 2,
+   "score": 11.98761,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 1.754558
+   }
+  },
+  {
+   "date": "2026-02-06",
+   "rating": 2,
+   "score": 11.497157,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 2.460619
+   }
+  },
+  {
+   "date": "2026-02-07",
+   "rating": 2,
+   "score": 10.960588,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 3.168756
+   }
+  },
+  {
+   "date": "2026-02-08",
+   "rating": 1,
+   "score": 10.319003,
+   "windows": 3,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 16.271378
+   }
+  },
+  {
+   "date": "2026-02-09",
+   "rating": 2,
+   "score": 11.170083,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 4.655978
+   }
+  },
+  {
+   "date": "2026-02-10",
+   "rating": 3,
+   "score": 13.729429,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 5.45549
+   }
+  },
+  {
+   "date": "2026-02-11",
+   "rating": 3,
+   "score": 13.763582,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 18.723795
+   }
+  },
+  {
+   "date": "2026-02-12",
+   "rating": 4,
+   "score": 14.256698,
+   "windows": 4,
+   "best": {
+    "label": "Moon underfoot",
+    "start": 19.59656
+   }
+  },
+  {
+   "date": "2026-02-13",
+   "rating": 3,
+   "score": 13.192047,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 8.033853
+   }
+  },
+  {
+   "date": "2026-02-14",
+   "rating": 3,
+   "score": 12.551669,
+   "windows": 4,
+   "best": {
+    "label": "Moon overhead",
+    "start": 8.898014
+   }
+  }
+ ],
+ "tidepooling": [
+  {
+   "date": "2026-01-01",
+   "rating": 4,
+   "score": 0.895536,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.6 ft",
+    "start": 11
+   }
+  },
+  {
+   "date": "2026-01-02",
+   "rating": 4,
+   "score": 0.832126,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.9 ft",
+    "start": 11.833333
+   }
+  },
+  {
+   "date": "2026-01-03",
+   "rating": 4,
+   "score": 0.747145,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.9 ft",
+    "start": 12.5
+   }
+  },
+  {
+   "date": "2026-01-04",
+   "rating": 3,
+   "score": 0.637194,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.7 ft",
+    "start": 13.333333
+   }
+  },
+  {
+   "date": "2026-01-05",
+   "rating": 3,
+   "score": 0.507181,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.3 ft",
+    "start": 14
+   }
+  },
+  {
+   "date": "2026-01-06",
+   "rating": 2,
+   "score": 0.379827,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.7 ft",
+    "start": 14.833333
+   }
+  },
+  {
+   "date": "2026-01-07",
+   "rating": 1,
+   "score": 0.247734,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.1 ft",
+    "start": 15.666667
+   }
+  },
+  {
+   "date": "2026-01-08",
+   "rating": 1,
+   "score": 0.135347,
+   "windows": 1,
+   "best": {
+    "label": "Low water 0.6 ft",
+    "start": 16.5
+   }
+  },
+  {
+   "date": "2026-01-09",
+   "rating": 0,
+   "score": 0.066781,
+   "windows": 1,
+   "best": {
+    "label": "Low water 1.3 ft",
+    "start": 17.666667
+   }
+  },
+  {
+   "date": "2026-01-10",
+   "rating": 0,
+   "score": 0,
+   "windows": 0,
+   "best": null
+  },
+  {
+   "date": "2026-01-11",
+   "rating": 2,
+   "score": 0.433038,
+   "windows": 1,
+   "best": {
+    "label": "Low water 1.3 ft",
+    "start": 9.5
+   }
+  },
+  {
+   "date": "2026-01-12",
+   "rating": 3,
+   "score": 0.541314,
+   "windows": 1,
+   "best": {
+    "label": "Low water 0.8 ft",
+    "start": 9.833333
+   }
+  },
+  {
+   "date": "2026-01-13",
+   "rating": 3,
+   "score": 0.637264,
+   "windows": 1,
+   "best": {
+    "label": "Low water 0.3 ft",
+    "start": 10.166667
+   }
+  },
+  {
+   "date": "2026-01-14",
+   "rating": 4,
+   "score": 0.715908,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.1 ft",
+    "start": 10.666667
+   }
+  },
+  {
+   "date": "2026-01-15",
+   "rating": 4,
+   "score": 0.736449,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.5 ft",
+    "start": 11
+   }
+  },
+  {
+   "date": "2026-01-16",
+   "rating": 4,
+   "score": 0.72845,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.7 ft",
+    "start": 11.5
+   }
+  },
+  {
+   "date": "2026-01-17",
+   "rating": 4,
+   "score": 0.717423,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.9 ft",
+    "start": 12
+   }
+  },
+  {
+   "date": "2026-01-18",
+   "rating": 3,
+   "score": 0.667904,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.0 ft",
+    "start": 12.666667
+   }
+  },
+  {
+   "date": "2026-01-19",
+   "rating": 3,
+   "score": 0.605899,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.9 ft",
+    "start": 13.166667
+   }
+  },
+  {
+   "date": "2026-01-20",
+   "rating": 3,
+   "score": 0.540542,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.8 ft",
+    "start": 13.666667
+   }
+  },
+  {
+   "date": "2026-01-21",
+   "rating": 2,
+   "score": 0.460365,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.5 ft",
+    "start": 14.166667
+   }
+  },
+  {
+   "date": "2026-01-22",
+   "rating": 2,
+   "score": 0.368583,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.1 ft",
+    "start": 14.833333
+   }
+  },
+  {
+   "date": "2026-01-23",
+   "rating": 1,
+   "score": 0.269737,
+   "windows": 1,
+   "best": {
+    "label": "Low water 0.5 ft",
+    "start": 15.5
+   }
+  },
+  {
+   "date": "2026-01-24",
+   "rating": 1,
+   "score": 0.19187,
+   "windows": 2,
+   "best": {
+    "label": "Low water 1.1 ft",
+    "start": 16.333333
+   }
+  },
+  {
+   "date": "2026-01-25",
+   "rating": 2,
+   "score": 0.413484,
+   "windows": 2,
+   "best": {
+    "label": "Low water 1.5 ft",
+    "start": 7.166667
+   }
+  },
+  {
+   "date": "2026-01-26",
+   "rating": 3,
+   "score": 0.511757,
+   "windows": 1,
+   "best": {
+    "label": "Low water 0.9 ft",
+    "start": 8
+   }
+  },
+  {
+   "date": "2026-01-27",
+   "rating": 3,
+   "score": 0.660587,
+   "windows": 1,
+   "best": {
+    "label": "Low water 0.1 ft",
+    "start": 8.666667
+   }
+  },
+  {
+   "date": "2026-01-28",
+   "rating": 4,
+   "score": 0.804128,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.6 ft",
+    "start": 9.333333
+   }
+  },
+  {
+   "date": "2026-01-29",
+   "rating": 5,
+   "score": 0.91852,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.2 ft",
+    "start": 10.166667
+   }
+  },
+  {
+   "date": "2026-01-30",
+   "rating": 5,
+   "score": 0.970497,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.6 ft",
+    "start": 10.833333
+   }
+  },
+  {
+   "date": "2026-01-31",
+   "rating": 5,
+   "score": 0.912335,
+   "windows": 1,
+   "best": {
+    "label": "Low water -1.8 ft",
+    "start": 11.666667
+   }
+  },
+  {
+   "date": "2026-02-01",
+   "rating": 4,
+   "score": 0.86098,
+   "windows": 2,
+   "best": {
+    "label": "Low water -1.7 ft",
+    "start": 12.333333
+   }
+  },
+  {
+   "date": "2026-02-02",
+   "rating": 4,
+   "score": 0.753383,
+   "windows": 2,
+   "best": {
+    "label": "Low water -1.4 ft",
+    "start": 13
+   }
+  },
+  {
+   "date": "2026-02-03",
+   "rating": 3,
+   "score": 0.635417,
+   "windows": 2,
+   "best": {
+    "label": "Low water -1.0 ft",
+    "start": 13.666667
+   }
+  },
+  {
+   "date": "2026-02-04",
+   "rating": 3,
+   "score": 0.505665,
+   "windows": 2,
+   "best": {
+    "label": "Low water -0.4 ft",
+    "start": 14.333333
+   }
+  },
+  {
+   "date": "2026-02-05",
+   "rating": 2,
+   "score": 0.385018,
+   "windows": 2,
+   "best": {
+    "label": "Low water 0.3 ft",
+    "start": 15
+   }
+  },
+  {
+   "date": "2026-02-06",
+   "rating": 2,
+   "score": 0.30791,
+   "windows": 2,
+   "best": {
+    "label": "Low water 0.9 ft",
+    "start": 15.666667
+   }
+  },
+  {
+   "date": "2026-02-07",
+   "rating": 2,
+   "score": 0.324728,
+   "windows": 2,
+   "best": {
+    "label": "Low water 1.5 ft",
+    "start": 5.833333
+   }
+  },
+  {
+   "date": "2026-02-08",
+   "rating": 2,
+   "score": 0.389404,
+   "windows": 1,
+   "best": {
+    "label": "Low water 1.6 ft",
+    "start": 7.333333
+   }
+  },
+  {
+   "date": "2026-02-09",
+   "rating": 2,
+   "score": 0.439132,
+   "windows": 1,
+   "best": {
+    "label": "Low water 1.3 ft",
+    "start": 8.5
+   }
+  },
+  {
+   "date": "2026-02-10",
+   "rating": 3,
+   "score": 0.534174,
+   "windows": 1,
+   "best": {
+    "label": "Low water 0.8 ft",
+    "start": 9
+   }
+  },
+  {
+   "date": "2026-02-11",
+   "rating": 3,
+   "score": 0.627599,
+   "windows": 1,
+   "best": {
+    "label": "Low water 0.3 ft",
+    "start": 9.5
+   }
+  },
+  {
+   "date": "2026-02-12",
+   "rating": 4,
+   "score": 0.708313,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.1 ft",
+    "start": 10.166667
+   }
+  },
+  {
+   "date": "2026-02-13",
+   "rating": 4,
+   "score": 0.775484,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.5 ft",
+    "start": 10.666667
+   }
+  },
+  {
+   "date": "2026-02-14",
+   "rating": 4,
+   "score": 0.827818,
+   "windows": 1,
+   "best": {
+    "label": "Low water -0.7 ft",
+    "start": 11.166667
+   }
+  }
+ ],
+ "_tideStats": {
+  "thresholdFeet": 1.77485,
+  "referenceDepthFeet": 3.41825
+ }
+}

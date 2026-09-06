@@ -38,7 +38,18 @@ export default {
     if (url.pathname === '/sitemap.xml') return sitemapXml(profile, url);
 
     const contentPath = matchContentPath(profile, url.pathname);
-    if (contentPath) return serveContentPage({ ctx, profile, url, ...contentPath });
+    if (contentPath) {
+      return serveContentPage({
+        ctx,
+        profile,
+        url,
+        // Falls back to a constant rather than something random: a per-request
+        // value would make every request a cache miss, which is a far worse
+        // failure than serving one deployment's pages under a stale label.
+        version: env.VERSION?.id ?? 'dev',
+        ...contentPath,
+      });
+    }
 
     // The app shell: served from assets, with its head rewritten for this site.
     if (url.pathname === '/' || url.pathname === '/index.html') {
@@ -76,13 +87,22 @@ function matchContentPath(profile, pathname) {
  * Content pages
  * ---------------------------------------------------------------- */
 
-async function serveContentPage({ ctx, profile, url, kind, location }) {
+async function serveContentPage({ ctx, profile, url, kind, location, version }) {
   const cache = caches.default;
 
-  // The cache key deliberately drops the query string. Nothing about these
-  // pages varies by it, and leaving it in would let anyone mint unlimited cache
-  // entries for the same content just by appending junk.
-  const cacheKey = new Request(`${url.origin}${url.pathname}?p=${profile.id}`, { method: 'GET' });
+  // The cache key deliberately drops the incoming query string. Nothing about
+  // these pages varies by it, and leaving it in would let anyone mint unlimited
+  // cache entries for the same content just by appending junk.
+  //
+  // It carries the profile, because two sites share these paths, and the
+  // deployment version, because `caches.default` outlives a deploy. Without the
+  // version a fix to any of this would sit invisible behind a cached copy until
+  // that location's midnight — which is a poor property anywhere, and a bad one
+  // in a repo where pushing is releasing.
+  const cacheKey = new Request(
+    `${url.origin}${url.pathname}?p=${profile.id}&v=${version}`,
+    { method: 'GET' },
+  );
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
