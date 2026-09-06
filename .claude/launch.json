@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "times4fishing",
+      "name": "times4",
       "runtimeExecutable": "python3",
-      "runtimeArgs": [".claude/dev-server.py", "8791"],
-      "port": 8791
+      "runtimeArgs": ["-m", "http.server", "8790"],
+      "port": 8790
     }
   ]
 }

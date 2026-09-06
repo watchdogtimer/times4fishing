@@ -106,3 +106,45 @@ export function startOfDay(date) {
   midnight.setHours(0, 0, 0, 0);
   return midnight;
 }
+
+/**
+ * Hours to add to local time to get UT, for an arbitrary IANA timezone.
+ *
+ * `localToUtcOffsetHours` asks the Date what the *browser's* offset is, which
+ * is the right answer in the browser and the wrong one everywhere else: the
+ * Worker that server-renders these pages runs in UTC, so it has to be told
+ * which zone the location is in.
+ *
+ * Formatting the instant into the target zone and reading the pieces back is
+ * the only way to get at another zone's offset without shipping a timezone
+ * database. Reading it per-date rather than caching it keeps daylight saving
+ * correct on both sides of a changeover.
+ *
+ * @param {Date} date
+ * @param {string} timeZone IANA name, e.g. "America/Los_Angeles".
+ */
+export function utcOffsetHoursInZone(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(date);
+
+  const field = (type) => Number(parts.find((part) => part.type === type).value);
+  const wallClockAsUtc = Date.UTC(
+    field('year'),
+    field('month') - 1,
+    field('day'),
+    field('hour'),
+    field('minute'),
+    field('second'),
+  );
+
+  // Positive west of Greenwich, matching localToUtcOffsetHours.
+  return (date.getTime() - wallClockAsUtc) / (60 * 60 * 1000);
+}

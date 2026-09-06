@@ -12,6 +12,30 @@
   --kelp-dim: rgba(76,138,124,0.35);
   --tide-low:#7E97A0;
 }
+
+/**
+ * times4tidepooling runs the same stylesheet with a different palette.
+ *
+ * The fishing site is dusk on the water: deep teal, brass, kelp green. This one
+ * is a rock pool at midday, so it keeps the structure and swaps the mood for
+ * wet slate and the orange of an ochre sea star. Only the tokens change, which
+ * is the whole point of having them.
+ */
+:root[data-profile="tidepooling"]{
+  --ink:#101A24;
+  --panel:#16232F;
+  --panel-2:#1B2B39;
+  --foam:#E8EEF2;
+  --foam-dim: rgba(232,238,242,0.62);
+  --brass:#E08A3C;
+  --brass-dim: rgba(224,138,60,0.35);
+  --kelp:#3E7F91;
+  --kelp-dim: rgba(62,127,145,0.35);
+  --tide-low:#8FA3AE;
+}
+:root[data-profile="tidepooling"] body{
+  background: radial-gradient(1200px 800px at 15% -10%, #1D3442 0%, transparent 60%), var(--ink);
+}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
@@ -62,6 +86,9 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
 .controls button:hover{ border-color: var(--brass); }
 .controls .toggle{ flex-basis:100%; display:flex; align-items:flex-start; gap:7px;
   cursor:pointer; font-size:13px; padding-top:2px; }
+/* A profile that has no use for a control hides it; `display:flex` above would
+   otherwise win against the browser's default [hidden] rule. */
+.controls .toggle[hidden]{ display:none; }
 .controls .toggle input{ width:auto; margin:2px 0 0; accent-color: var(--brass); cursor:pointer; }
 .controls .toggle em{ display:block; font-style:normal; font-size:11.5px; color:var(--foam-dim); }
 .controls .place{font-size:13px; color:var(--foam-dim);}
@@ -71,9 +98,10 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
 .legend .legend-note{ padding-left:6px; border-left:1px solid var(--line); }
 .legend span{display:inline-flex; align-items:center; gap:6px;}
 .dot{width:9px;height:9px; display:inline-block; border-radius:50%;}
-.dot.prime{background:var(--brass);}
-.dot.major{background:var(--kelp);}
-.dot.minor{background:var(--tide-low);}
+/* Legend swatches mirror the rating tiers the calendar cells use. */
+.dot.excellent{background:var(--brass);}
+.dot.good{background:var(--kelp);}
+.dot.fair{background:var(--tide-low);}
 .dot.quiet{background:rgba(228,239,236,0.3);}
 
 .pagebar{

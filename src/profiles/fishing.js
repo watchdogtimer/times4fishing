@@ -1,5 +1,5 @@
 /**
- * Solunar fishing windows.
+ * times4fishing: solunar fishing windows.
  *
  * Solunar theory (John Alden Knight, 1926) holds that fish feed most actively
  * when the moon is directly overhead or underfoot ("major" periods) and, less
@@ -12,16 +12,8 @@
  * in one place so they're easy to find and easy to argue with.
  */
 
-import {
-  moonPhase,
-  moonPosition,
-  solveLocalEventHour,
-  sunPosition,
-  toEpochDays,
-  MOON_HORIZON_ALTITUDE_DEG,
-  SUN_HORIZON_ALTITUDE_DEG,
-} from './astronomy.js';
-import { addHours, isWithinHours, localToUtcOffsetHours } from './time.js';
+import { bestWindow, fractionWithin, rankWindows } from '../core/day.js';
+import { addHours, formatClockTime, isWithinHours } from '../core/time.js';
 
 export const MAJOR = 'Major';
 export const MINOR = 'Minor';
@@ -92,8 +84,8 @@ export const SCORING = {
  * The two reference days the 0-5 rating is stretched between.
  *
  * These have to describe days that actually occur. An earlier version divided
- * by the theoretical maximum — all four windows at a full moon, each catching
- * both a sun event and a tide — which is unreachable: there are only two sun
+ * by the theoretical maximum, all four windows at a full moon each catching
+ * both a sun event and a tide, which is unreachable: there are only two sun
  * events in a day, so at most two windows can ever take that bonus. Real days
  * scored between 34% and 79% of that ceiling, so every rating collapsed into
  * 2, 3 or 4, and 82% of days came out as exactly 3. The calendar could not
@@ -142,129 +134,35 @@ function fullMoonDayScore() {
 }
 
 /**
- * @typedef {object} TideEvent
- * @property {number} hour   Local hours, 0-24.
- * @property {'H'|'L'} type  High or low water.
- * @property {number} height Feet above the MLLW datum.
+ * @typedef {import('../core/day.js').Window & {
+ *   kind: 'Major'|'Minor',
+ *   prime: boolean,
+ *   sunEvent: 'sunrise'|'sunset'|null,
+ *   tideEvent: import('../core/day.js').TideEvent|null,
+ *   fishableFraction: number,
+ *   intrinsicScore: number,
+ * }} FishingWindow
  */
 
 /**
- * @typedef {object} FishingWindow
- * @property {keyof WINDOW_SOURCES} source What causes this window.
- * @property {string} label      Plain description, e.g. "Moon overhead".
- * @property {'Major'|'Minor'} kind
- * @property {number} center     Local hours at the peak of the window.
- * @property {number} start      Local hours.
- * @property {number} end        Local hours. May wrap past midnight.
- * @property {boolean} prime     Overlaps a sun event or a tide change.
- * @property {'sunrise'|'sunset'|null} sunEvent Which sun event, if any.
- * @property {TideEvent|null} tideEvent
- * @property {number} fishableFraction How much of the window falls in fishable
- *   hours, 0 to 1. Views use it to dim the ones you'd have to set an alarm for.
- * @property {number} intrinsicScore Solunar strength on its own merits, before
- *   the time-of-day discount. Only useful for spotting a strong window that the
- *   discount has pushed down the ranking.
- * @property {number} score `intrinsicScore` weighted by `fishableFraction`.
- *   This is what the ranking and the day's rating use.
- * @property {number} rank 1 for the day's best window, 2 for the next, and so
- *   on. Unique within a day, so it's safe to drive the UI's styling.
- */
-
-/**
- * @typedef {object} DayForecast
- * @property {Date} date
- * @property {number|null} sunrise Local hours. Null inside the polar circles.
- * @property {number|null} sunset
- * @property {number|null} moonrise
- * @property {number|null} moonset
- * @property {number|null} moonOverhead Upper transit — moon at its highest.
- * @property {number|null} moonUnderfoot Lower transit — moon at its lowest, below the horizon.
- * @property {{illuminatedFraction: number, name: string}} phase
- * @property {FishingWindow[]} windows Sorted by start time.
- * @property {number} score  Sum of the window scores, before scaling.
- * @property {number} rating 0-5.
- * @property {TideEvent[]} tides
- */
-
-/**
- * Compute the sun, moon and fishing windows for one local calendar day.
+ * Score one day's facts for fishing.
  *
- * @param {object} options
- * @param {Date} options.date       Any time on the day of interest.
- * @param {number} options.latitude Degrees, north positive.
- * @param {number} options.longitude Degrees, east positive.
- * @param {TideEvent[]} [options.tides] That day's high/low predictions, if we have them.
- * @param {boolean} [options.includeSleepingHours] Count windows at any hour in
- *   full, instead of discounting the ones outside SCORING.fishableHours.
- * @returns {DayForecast}
+ * @param {import('../core/day.js').DayFacts} facts
+ * @param {{includeSleepingHours?: boolean}} settings
  */
-export function computeDayForecast({
-  date,
-  latitude,
-  longitude,
-  tides = [],
-  includeSleepingHours = false,
-}) {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const dayOfMonth = date.getDate();
-
-  // Local midnight, expressed as an absolute time the astronomy can use.
-  const utcOffsetHours = localToUtcOffsetHours(date);
-  const utcOffsetDays = utcOffsetHours / 24;
-  const midnightEpochDays = toEpochDays(year, month, dayOfMonth, 0) + utcOffsetDays;
-
-  const solve = (options) =>
-    solveLocalEventHour({
-      midnightEpochDays,
-      utcOffsetHours,
-      latitude,
-      longitude,
-      ...options,
-    });
-
-  const sunOptions = { positionFn: sunPosition, horizonAltitudeDeg: SUN_HORIZON_ALTITUDE_DEG };
-  const moonOptions = { positionFn: moonPosition, horizonAltitudeDeg: MOON_HORIZON_ALTITUDE_DEG };
-
-  const sunrise = solve({ ...sunOptions, direction: -1 });
-  const sunset = solve({ ...sunOptions, direction: +1 });
-  const moonrise = solve({ ...moonOptions, direction: -1 });
-  const moonset = solve({ ...moonOptions, direction: +1 });
-  const moonOverhead = solve({ positionFn: moonPosition, hourAngleDeg: 0 });
-  const moonUnderfoot = solve({ positionFn: moonPosition, hourAngleDeg: 180 });
-
-  // Sample the phase at local midday, the middle of the day we're rating.
-  const phase = moonPhase(toEpochDays(year, month, dayOfMonth, 12) + utcOffsetDays);
-
+function rateDay(facts, { includeSleepingHours = false } = {}) {
   const offHoursWeight = includeSleepingHours ? 1 : SCORING.offHoursWeight;
-  const context = { sunrise, sunset, tides, phase, offHoursWeight };
-  const windows = [
-    buildWindow('moonOverhead', moonOverhead, context),
-    buildWindow('moonUnderfoot', moonUnderfoot, context),
-    buildWindow('moonrise', moonrise, context),
-    buildWindow('moonset', moonset, context),
-  ]
+  const context = { ...facts, offHoursWeight };
+
+  const windows = Object.keys(WINDOW_SOURCES)
+    .map((source) => buildWindow(source, facts[source], context))
     .filter(Boolean)
     .sort((a, b) => a.start - b.start);
 
   rankWindows(windows);
+  const score = windows.reduce((total, window) => total + window.score, 0);
 
-  const dailyScore = windows.reduce((total, window) => total + window.score, 0);
-
-  return {
-    date,
-    sunrise,
-    sunset,
-    moonrise,
-    moonset,
-    moonOverhead,
-    moonUnderfoot,
-    phase,
-    windows,
-    score: dailyScore,
-    rating: toRating(dailyScore, includeSleepingHours),
-    tides,
-  };
+  return { windows, score, rating: toRating(score, includeSleepingHours) };
 }
 
 /**
@@ -274,7 +172,7 @@ export function computeDayForecast({
  * @returns {FishingWindow|null} Null when the moment doesn't occur that day.
  */
 function buildWindow(source, center, { sunrise, sunset, tides, phase, offHoursWeight }) {
-  if (center === null) return null;
+  if (center === null || center === undefined) return null;
 
   const { kind, label } = WINDOW_SOURCES[source];
   const halfSpan = SCORING.halfSpanHours[kind];
@@ -294,15 +192,18 @@ function buildWindow(source, center, { sunrise, sunset, tides, phase, offHoursWe
 
   const start = addHours(center, -halfSpan);
   const end = addHours(center, halfSpan);
-  const fishableFraction = fractionInFishableHours(start, end);
+  const fishableFraction = fractionWithin(start, end, SCORING.fishableHours);
 
   return {
     source,
     label,
     kind,
+    tag: kind,
     center,
     start,
     end,
+    // Majors are twice as wide as minors, so the chart draws them heavier.
+    weight: kind === MAJOR ? 1 : 0.5,
     prime: sunEvent !== null || tideEvent !== null,
     sunEvent,
     tideEvent,
@@ -314,47 +215,11 @@ function buildWindow(source, center, { sunrise, sunset, tides, phase, offHoursWe
 }
 
 /**
- * Number the windows from best to worst.
- *
- * Ties are common — the two major periods often score identically — so the
- * earliest wins, which is deterministic and puts the marker on the one you can
- * still get to. `windows` must already be sorted by start time for that
- * tie-break to hold.
- */
-function rankWindows(windows) {
-  [...windows]
-    .sort((a, b) => b.score - a.score)
-    .forEach((window, index) => {
-      window.rank = index + 1;
-    });
-}
-
-/**
  * How much a window counts, given how much of it lands in fishable hours.
  * Fully inside scores in full; fully outside keeps `offHoursWeight`.
  */
 function fishableWeight(fishableFraction, offHoursWeight) {
   return offHoursWeight + (1 - offHoursWeight) * fishableFraction;
-}
-
-/**
- * The fraction of a window that falls inside SCORING.fishableHours.
- *
- * The window may straddle midnight, so it's split into non-wrapping pieces
- * first and each piece intersected with the fishable span.
- */
-function fractionInFishableHours(start, end) {
-  const { from, to } = SCORING.fishableHours;
-  const pieces = end >= start ? [[start, end]] : [[start, 24], [0, end]];
-
-  const total = pieces.reduce((sum, [a, b]) => sum + (b - a), 0);
-  if (total <= 0) return 0;
-
-  const inside = pieces.reduce(
-    (sum, [a, b]) => sum + Math.max(0, Math.min(b, to) - Math.max(a, from)),
-    0,
-  );
-  return inside / total;
 }
 
 /**
@@ -377,35 +242,13 @@ function toRating(dailyScore, includeSleepingHours) {
   return Math.max(0, Math.min(SCORING.maxRating, scaled));
 }
 
-/** The day's highest-scoring window, or null if the day has none. */
-export function bestWindow(forecast) {
-  return windowByRank(forecast, 1);
-}
-
-/**
- * The day's runner-up, for when the best window doesn't suit.
- *
- * Worth surfacing: on 29% of days it scores within 15% of the best, so it's a
- * real alternative rather than a consolation prize.
- */
-export function secondBestWindow(forecast) {
-  return windowByRank(forecast, 2);
-}
-
-/** @returns {FishingWindow|null} */
-function windowByRank(forecast, rank) {
-  return forecast.windows.find((window) => window.rank === rank) ?? null;
-}
-
 /**
  * A window that would top the day on solunar strength alone, but got ranked
  * down because it falls in the small hours. Null when there isn't one.
  *
  * The ranking deliberately favours windows you'd actually fish, which means a
  * genuinely strong 2 AM period can end up buried. Rather than quietly demote
- * it, the detail view calls it out so the choice is yours. Returns null when
- * the sleeping-hours discount is off, since then the best window already is
- * the strongest one.
+ * it, the detail view calls it out so the choice is yours.
  */
 export function strongestOffHoursWindow(forecast) {
   const best = bestWindow(forecast);
@@ -414,9 +257,72 @@ export function strongestOffHoursWindow(forecast) {
   return (
     forecast.windows
       .filter(
-        (window) =>
-          window.fishableFraction < 0.5 && window.intrinsicScore > best.intrinsicScore,
+        (window) => window.fishableFraction < 0.5 && window.intrinsicScore > best.intrinsicScore,
       )
       .sort((a, b) => b.intrinsicScore - a.intrinsicScore)[0] ?? null
   );
 }
+
+/** @type {import('../config.js').Profile} */
+export default {
+  id: 'fishing',
+  hostnames: ['times4fishing.com', 'www.times4fishing.com'],
+  siteName: 'Tide & Moon',
+  title: 'Tide & Moon — Fishing Windows',
+  tagline:
+    'Four weeks at a time, ranked by when the sun, moon, and tide line up to put fish on the feed. No ads, no accounts.',
+  activity: 'fishing',
+  windowNoun: 'fishing window',
+  /** Fishing still works on sun and moon alone, so a station is optional. */
+  requiresTideStation: false,
+  ratingTiers: [
+    { min: 4, name: 'Excellent', className: 'excellent' },
+    { min: 3, name: 'Good', className: 'good' },
+    { min: 2, name: 'Fair', className: 'fair' },
+    { min: 0, name: 'Quiet', className: 'quiet' },
+  ],
+  windowsHeading: 'Best windows today',
+  emptyWindowsNote: 'No events computed for this location and date.',
+  chartCaption:
+    "Tide height through the day. Shaded bands are fishing windows: gold is the day's " +
+    'best, the brighter green is the runner-up. Wider bands are major periods (2 hours), ' +
+    'narrow ones minor (1 hour). The lighter background is daylight.',
+  aboutHtml: `
+      <p><b>Moon &amp; sun windows are computed directly from astronomy</b> for your exact coordinates: two daily <b>major periods</b> (moon overhead / underfoot) and two <b>minor periods</b> (moonrise / moonset), per John Alden Knight's 1926 solunar theory. A window is flagged <b>Prime</b> when it overlaps sunrise, sunset, or — if you've added a NOAA station — an actual high or low tide.</p>
+      <p>Major periods outscore minor ones, and a prime minor can still rank below a plain major, so <b>Prime doesn't mean best</b>. On a day's chart the single highest-scoring window is the gold one, marked <b>Best</b>.</p>
+      <p><b>Tide times</b> come from NOAA's free CO-OPS API for the station you set, so they're real predictions, not estimates — but that only covers stations in NOAA's network (mainly the US and territories). Elsewhere you'd need a different tide data source.</p>
+      <p><b>The tide curve</b> on each day is drawn between NOAA's published high and low waters by fitting a half cosine across each half-cycle. The peaks and troughs are exact; the shape in between is a very good approximation, but it isn't NOAA's own six-minute prediction. Don't plan a bar crossing by it.</p>
+      <p><b>Windows outside 6 AM to 10 PM are discounted</b> when rating a day. The astronomy doesn't care what time it is, but you probably do, so a major period at 1 AM still gets listed and charted while counting for a fraction of a daytime one. That's why the best window shown on a calendar cell is nearly always at a civilised hour.</p>
+      <p>Solunar theory has a real physical basis (lunar gravity drives tides, and moving water is a well-documented feeding trigger) but the specific claim of sharp 1–2 hour "best window" spikes is folk-science in origin, not a peer-reviewed model — treat the rating as one input, not gospel. Weather, pressure, and species behavior matter too and aren't modeled here.</p>`,
+  rateDay,
+
+  /** @param {FishingWindow} window */
+  describeWindow(window) {
+    const notes = [];
+    if (window.fishableFraction < 0.5) notes.push('outside fishable hours');
+    if (window.sunEvent) notes.push(`near ${window.sunEvent}`);
+    if (window.tideEvent) {
+      const kind = window.tideEvent.type === 'H' ? 'high' : 'low';
+      notes.push(`near ${kind} tide (${window.tideEvent.height.toFixed(1)} ft)`);
+    }
+    return notes;
+  },
+
+  /**
+   * Call out a window that beats the day's best on solunar strength but was
+   * ranked down for falling in the small hours.
+   *
+   * The ranking favours windows you'd actually fish, which is right for
+   * choosing between days but would otherwise hide a genuinely strong period at
+   * 2 AM. Rather than bury it, say so and let the angler decide.
+   */
+  dayNote(forecast) {
+    const window = strongestOffHoursWindow(forecast);
+    if (!window) return '';
+    return `
+      <p class="off-hours-note">
+        Strongest overall is <b>${formatClockTime(window.start)}</b>
+        (${window.label.toLowerCase()}), outside fishable hours.
+      </p>`;
+  },
+};

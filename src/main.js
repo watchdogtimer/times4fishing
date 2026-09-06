@@ -8,11 +8,21 @@
  * wrong.
  */
 
-import { computeDayForecast } from './solunar.js';
-import { emptyTideData, fetchTidePredictions, findNearestStation } from './tides.js';
-import { addDays, isSameDay, startOfDay, toDateKey } from './time.js';
+import { activeProfile } from './config.js';
+import { computeDayForecast } from './core/day.js';
+import {
+  emptyTideData,
+  fetchTidePredictions,
+  findNearestStation,
+  sampleTideCurve,
+} from './core/tides.js';
+import { addDays, isSameDay, startOfDay, toDateKey } from './core/time.js';
+import { stationTideStats } from './profiles/tidepooling.js';
 import { renderCalendarGrid } from './views/calendar-grid.js';
 import { renderDayDetail } from './views/day-detail.js';
+
+/** Which site this is. Decided by hostname, so both run from one deployment. */
+const profile = activeProfile();
 
 /** One page of the calendar is four weeks. */
 const DAYS_PER_PAGE = 28;
@@ -43,12 +53,55 @@ const state = {
   pageOffset: 0,
   /** NOAA station id, or null for sun-and-moon-only mode. */
   stationId: null,
-  /** @type {import('./tides.js').TideData} Tides for the page currently on screen. */
+  /** @type {import('./core/tides.js').TideData} Tides for the page currently on screen. */
   tideData: emptyTideData(),
   /** Count windows at any hour in full, rather than discounting the small hours. */
   includeSleepingHours: false,
+  /**
+   * How low this station's water usually gets. Recomputed whenever tides load,
+   * because it's derived from the predictions themselves rather than fetched.
+   * Only the tidepooling profile reads it; fishing ignores it.
+   */
+  tideStats: null,
   ...DEFAULT_LOCATION,
 };
+
+/* ---------------------------------------------------------------- *
+ * Profile chrome
+ * ---------------------------------------------------------------- */
+
+/**
+ * Stamp the profile's wording onto the page.
+ *
+ * The Worker already does this server-side, so on the live sites this is a
+ * no-op that rewrites the same strings it finds. It earns its keep in local
+ * dev, where the page is served as a plain file, and for `?profile=` previews.
+ */
+function applyProfileChrome() {
+  document.documentElement.dataset.profile = profile.id;
+  document.title = profile.title;
+  document.querySelector('meta[name="description"]')?.setAttribute('content', profile.tagline);
+
+  const set = (id, html) => {
+    const element = document.getElementById(id);
+    if (element) element.innerHTML = html;
+  };
+  set('siteName', profile.siteName);
+  set('tagline', profile.tagline);
+  set('aboutBody', profile.aboutHtml);
+  set(
+    'legendTiers',
+    profile.ratingTiers
+      .map((tier) => `<span><i class="dot ${tier.className}"></i> ${tier.name}</span>`)
+      .join(''),
+  );
+
+  // Only tidepooling insists on a station, and only fishing has anything to say
+  // about the small hours, so each site drops the other's control.
+  document
+    .getElementById('sleepingToggle')
+    ?.toggleAttribute('hidden', profile.id !== 'fishing');
+}
 
 /* ---------------------------------------------------------------- *
  * Rendering
@@ -65,16 +118,23 @@ function currentPageRange() {
 async function loadTides(start, end) {
   if (!state.stationId) {
     state.tideData = emptyTideData();
-    setStatus('No tide station set — moon & sun windows only.');
+    state.tideStats = null;
+    setStatus(
+      profile.requiresTideStation
+        ? 'Set a tide station to see anything — low water is the whole story here.'
+        : 'No tide station set — moon & sun windows only.',
+    );
     return;
   }
 
   setStatus(`Loading tide predictions for station ${state.stationId}…`);
   try {
     state.tideData = await fetchTidePredictions(state.stationId, start, end);
+    state.tideStats = stationTideStats(state.tideData.events);
     setStatus(`Tide predictions loaded for station ${state.stationId}.`);
   } catch (error) {
     state.tideData = emptyTideData();
+    state.tideStats = null;
     setStatus(`Could not load tides for station ${state.stationId}: ${error.message}`);
   }
 }
@@ -101,7 +161,13 @@ function render() {
       latitude: state.latitude,
       longitude: state.longitude,
       tides: state.tideData.byDate[toDateKey(date)] ?? [],
-      includeSleepingHours: state.includeSleepingHours,
+      // Sampled once here so the scoring and the chart see the same curve.
+      tideCurve: sampleTideCurve(state.tideData.events, date),
+      profile,
+      settings: {
+        includeSleepingHours: state.includeSleepingHours,
+        tideStats: state.tideStats,
+      },
     });
 
   elements.rangeLabel.textContent = formatRange(start, end);
@@ -114,6 +180,7 @@ function render() {
     today,
     forecastFor,
     onSelectDay: showDay,
+    profile,
   });
 
   // The header shows tonight's moon, which only makes sense on the current page.
@@ -128,11 +195,7 @@ function showDay(forecast, cell) {
   for (const other of elements.grid.querySelectorAll('.cell')) {
     other.classList.toggle('selected', other === cell);
   }
-  renderDayDetail({
-    container: elements.detail,
-    forecast,
-    tideEvents: state.tideData.events,
-  });
+  renderDayDetail({ container: elements.detail, forecast, profile });
   elements.detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -234,4 +297,5 @@ elements.includeSleeping.addEventListener('change', () => {
   render(); // Only the scoring changed, so the tides we already have still stand.
 });
 
+applyProfileChrome();
 refresh();

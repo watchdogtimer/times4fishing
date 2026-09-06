@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tide &amp; Moon — Fishing Windows</title>
+<meta name="description" content="Four weeks at a time, ranked by when the sun, moon, and tide line up.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -13,8 +14,8 @@
 
   <header>
     <div>
-      <h1>Tide &amp; Moon</h1>
-      <p>Four weeks at a time, ranked by when the sun, moon, and tide line up to put fish on the feed. No ads, no accounts.</p>
+      <h1 id="siteName">Tide &amp; Moon</h1>
+      <p id="tagline">Four weeks at a time, ranked by when the sun, moon, and tide line up to put fish on the feed. No ads, no accounts.</p>
     </div>
     <div class="moonlabel" id="moonToday">—</div>
   </header>
@@ -36,7 +37,7 @@
     </div>
     <button id="findStation">Find nearest station</button>
     <button id="recalc">Update</button>
-    <label class="toggle" for="includeSleeping">
+    <label class="toggle" id="sleepingToggle" for="includeSleeping">
       <input id="includeSleeping" type="checkbox">
       <span>Include sleeping hours<em>Off: only 6 AM – 10 PM counts toward a day's rating</em></span>
     </label>
@@ -46,10 +47,7 @@
 
   <div class="legend">
     <span>Each day is rated out of five:</span>
-    <span><i class="dot prime"></i> Excellent</span>
-    <span><i class="dot major"></i> Good</span>
-    <span><i class="dot minor"></i> Fair</span>
-    <span><i class="dot quiet"></i> Quiet</span>
+    <span id="legendTiers"><span><i class="dot excellent"></i> Excellent</span><span><i class="dot good"></i> Good</span><span><i class="dot fair"></i> Fair</span><span><i class="dot quiet"></i> Quiet</span></span>
     <span class="legend-note">Each day shows when its best window starts, and a second option below it.</span>
   </div>
 
@@ -70,14 +68,7 @@
 
   <details class="about">
     <summary>How the ratings are calculated</summary>
-    <div class="body">
-      <p><b>Moon &amp; sun windows are computed directly from astronomy</b> for your exact coordinates: two daily <b>major periods</b> (moon overhead / underfoot) and two <b>minor periods</b> (moonrise / moonset), per John Alden Knight's 1926 solunar theory. A window is flagged <b>Prime</b> when it overlaps sunrise, sunset, or — if you've added a NOAA station — an actual high or low tide.</p>
-      <p>Major periods outscore minor ones, and a prime minor can still rank below a plain major, so <b>Prime doesn't mean best</b>. On a day's chart the single highest-scoring window is the gold one, marked <b>Best</b>.</p>
-      <p><b>Tide times</b> come from NOAA's free CO-OPS API for the station you set, so they're real predictions, not estimates — but that only covers stations in NOAA's network (mainly the US and territories). Elsewhere you'd need a different tide data source.</p>
-      <p><b>The tide curve</b> on each day is drawn between NOAA's published high and low waters by fitting a half cosine across each half-cycle. The peaks and troughs are exact; the shape in between is a very good approximation, but it isn't NOAA's own six-minute prediction. Don't plan a bar crossing by it.</p>
-      <p><b>Each day shows two times</b>: its best window and the runner-up, because the best one often isn't the one that fits your day. On roughly a third of days the runner-up scores within 15% of the best, so it's a genuine alternative rather than a consolation prize.</p>
-      <p><b>Windows outside 6 AM to 10 PM are discounted</b> when rating a day. The astronomy doesn't care what time it is, but you probably do, so a major period at 1 AM still gets listed and charted while counting for a fraction of a daytime one. That's why the best window shown on a calendar cell is nearly always at a civilised hour. Drill into a day and every window is listed whatever the hour, and if one of the small-hours periods is genuinely the strongest of the day, it's called out as such.</p>
-      <p>Solunar theory has a real physical basis (lunar gravity drives tides, and moving water is a well-documented feeding trigger) but the specific claim of sharp 1–2 hour "best window" spikes is folk-science in origin, not a peer-reviewed model — treat the rating as one input, not gospel. Weather, pressure, and species behavior matter too and aren't modeled here.</p>
+    <div class="body" id="aboutBody">
     </div>
   </details>
 

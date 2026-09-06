@@ -6,14 +6,18 @@
  * grid starts on a Sunday and ends on a Saturday, but they're dimmed and inert.
  */
 
-import { bestWindow, secondBestWindow } from '../solunar.js';
-import { formatClockTime, formatClockTimeCompact, isSameDay } from '../time.js';
+import { bestWindow, secondBestWindow } from '../core/day.js';
+import { formatClockTime, formatClockTimeCompact, isSameDay } from '../core/time.js';
 
 const DAYS_PER_WEEK = 7;
 const MAX_RATING = 5;
 
 /**
  * How a rating is described and coloured.
+ *
+ * The tiers themselves live on the profile, because the words differ: a bad
+ * fishing day is "Quiet" and worth a punt anyway, a bad tidepooling day is
+ * "Skip it" and genuinely is.
  *
  * The cell used to colour itself gold when the day's best window happened to
  * carry a sun or tide bonus, which is a different question from whether the
@@ -22,14 +26,7 @@ const MAX_RATING = 5;
  * and the filled-dot count says the same thing again for anyone who can't rely
  * on the colour.
  */
-const RATING_TIERS = [
-  { min: 4, name: 'Excellent', className: 'excellent' },
-  { min: 3, name: 'Good', className: 'good' },
-  { min: 2, name: 'Fair', className: 'fair' },
-  { min: 0, name: 'Quiet', className: 'quiet' },
-];
-
-const tierFor = (rating) => RATING_TIERS.find((tier) => rating >= tier.min);
+const tierFor = (rating, profile) => profile.ratingTiers.find((tier) => rating >= tier.min);
 
 /**
  * Render the grid into `container`.
@@ -39,10 +36,19 @@ const tierFor = (rating) => RATING_TIERS.find((tier) => rating >= tier.min);
  * @param {Date} options.rangeStart First day in the range.
  * @param {Date} options.rangeEnd   Last day in the range.
  * @param {Date} options.today
- * @param {(date: Date) => import('../solunar.js').DayForecast} options.forecastFor
- * @param {(forecast: import('../solunar.js').DayForecast, cell: HTMLElement) => void} options.onSelectDay
+ * @param {(date: Date) => object} options.forecastFor
+ * @param {(forecast: object, cell: HTMLElement) => void} options.onSelectDay
+ * @param {import('../config.js').Profile} options.profile
  */
-export function renderCalendarGrid({ container, rangeStart, rangeEnd, today, forecastFor, onSelectDay }) {
+export function renderCalendarGrid({
+  container,
+  rangeStart,
+  rangeEnd,
+  today,
+  forecastFor,
+  onSelectDay,
+  profile,
+}) {
   container.replaceChildren();
 
   // Pad out to whole weeks so the grid lines up under the weekday headings.
@@ -56,7 +62,7 @@ export function renderCalendarGrid({ container, rangeStart, rangeEnd, today, for
     const inRange = date >= rangeStart && date <= rangeEnd;
     container.append(
       inRange
-        ? buildDayCell(date, today, forecastFor(date), onSelectDay)
+        ? buildDayCell(date, today, forecastFor(date), onSelectDay, profile)
         : buildOutOfRangeCell(date),
     );
   }
@@ -70,10 +76,21 @@ function buildOutOfRangeCell(date) {
   return cell;
 }
 
-function buildDayCell(date, today, forecast, onSelectDay) {
+/**
+ * The one time a cell has room for.
+ *
+ * Fishing wants the window's start, because that's when to be there. Tidepooling
+ * wants the low itself: its windows run for hours and often get clipped at
+ * midnight, so a start time is both less useful and sometimes just "12:00 AM".
+ */
+function cellTime(window, profile) {
+  return profile.cellTime?.(window) ?? window.start;
+}
+
+function buildDayCell(date, today, forecast, onSelectDay, profile) {
   const best = bestWindow(forecast);
   const second = secondBestWindow(forecast);
-  const tier = tierFor(forecast.rating);
+  const tier = tierFor(forecast.rating, profile);
 
   // A real button so it's keyboard reachable and announced as clickable.
   const cell = document.createElement('button');
@@ -83,8 +100,8 @@ function buildDayCell(date, today, forecast, onSelectDay) {
     'aria-label',
     `${date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}: ` +
       `${tier.name}, ${forecast.rating} out of ${MAX_RATING}` +
-      `${best ? `. Best window from ${formatClockTime(best.start)}` : ''}` +
-      `${second ? `, second best from ${formatClockTime(second.start)}` : ''}`,
+      `${best ? `. Best window from ${formatClockTime(cellTime(best, profile))}` : ''}` +
+      `${second ? `, second best from ${formatClockTime(cellTime(second, profile))}` : ''}`,
   );
 
   // Two times rather than one: the best window often isn't the one that fits
@@ -95,8 +112,12 @@ function buildDayCell(date, today, forecast, onSelectDay) {
       forecast.rating,
     )}</div>
     <div class="times">
-      <div class="best">${best ? renderTime(best.start) : '—'}</div>
-      ${second ? `<div class="second"><span class="or">or </span>${renderTime(second.start)}</div>` : ''}
+      <div class="best">${best ? renderTime(cellTime(best, profile)) : '—'}</div>
+      ${
+        second
+          ? `<div class="second"><span class="or">or </span>${renderTime(cellTime(second, profile))}</div>`
+          : ''
+      }
     </div>`;
 
   cell.addEventListener('click', () => onSelectDay(forecast, cell));

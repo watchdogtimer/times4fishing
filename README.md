@@ -1,8 +1,15 @@
-# Tide & Moon
+# Tide & Moon / Low Water
 
-A four-week fishing calendar that ranks days by when the sun, moon and tide line
-up. No build step, no dependencies, no accounts — plain ES modules served as
-static files (Cloudflare Workers assets, see `wrangler.jsonc`).
+Two four-week calendars from one codebase:
+
+- **times4fishing.com** ranks days by when the sun, moon and tide line up to put
+  fish on the feed.
+- **times4tidepooling.com** ranks days by when the tide drops far enough, for
+  long enough, in daylight.
+
+No build step, no dependencies, no accounts — plain ES modules served as static
+files (Cloudflare Workers assets, see `wrangler.jsonc`). Which site you get is
+decided by hostname at runtime, so both run from a single deployment.
 
 ## Running it
 
@@ -14,26 +21,68 @@ python3 -m http.server 8788
 
 Then open <http://localhost:8788>. Tide data needs network access to NOAA.
 
+Both sites run from one tree, so locally you pick between them with a query
+parameter rather than a hosts file:
+
+```
+http://localhost:8788/?profile=tidepooling
+```
+
+On the real domains the hostname decides, and `?profile=` is only a dev
+convenience — it can't change what a crawler sees on either site.
+
 ## Layout
 
 ```
-index.html          Markup and the control bar
-style.css           All styling, including the chart
+index.html          Profile-agnostic shell: the controls and the empty containers
+style.css           All styling, including the chart and both palettes
 src/
   main.js           Entry point: UI state, event wiring, render orchestration
-  astronomy.js      Sun and moon positions, phase, rise/set/transit solver
-  solunar.js        Fishing windows and the 0-5 day rating
-  tides.js          NOAA CO-OPS client and tide-curve interpolation
-  time.js           Clock-time and calendar-date helpers
-  views/
+  config.js         Which profile answers on which hostname
+  core/             Knows nothing about fishing or tidepooling
+    astronomy.js      Sun and moon positions, phase, rise/set/transit solver
+    day.js            One day's physical facts, plus generic window ranking
+    tides.js          NOAA CO-OPS client and tide-curve interpolation
+    time.js           Clock-time, calendar-date and timezone helpers
+  profiles/         The only place a "good day" is defined
+    fishing.js        Solunar windows, scored against sun and tide
+    tidepooling.js    Low-water windows, scored on depth, duration and daylight
+  views/            Driven entirely by the profile's vocabulary
     calendar-grid.js  The four-week grid
     day-detail.js     The panel shown when a day is clicked
     tide-chart.js     The SVG tide chart
 ```
 
-Dependencies point one way: `views/` uses the model modules, `main.js` uses
-everything, and nothing in `astronomy.js`, `solunar.js`, `tides.js` or `time.js`
-touches the DOM. That last part is what makes the maths testable in plain Node.
+Dependencies point one way: `core/` depends on nothing else, `profiles/` uses
+`core/`, `views/` uses both, and `main.js` uses everything. Nothing outside
+`views/` touches the DOM, which is what makes the maths testable in plain Node
+and lets the same modules server-render pages in a Worker.
+
+## The two profiles
+
+A profile owns the wording, the palette hook, the rating tiers, and one
+function: `rateDay(facts, settings)`, which turns a day's physical facts into
+scored windows and a 0-5 rating. `core/day.js` computes the facts and does the
+ranking; it has no opinion about what makes a day good.
+
+The split matters because the two models genuinely disagree rather than being
+reskins of each other:
+
+|                  | fishing                        | tidepooling                          |
+| ---------------- | ------------------------------ | ------------------------------------ |
+| Windows built by | moon transits, rise and set    | the tide curve dropping below a threshold |
+| Tide's role      | a bonus when it lines up       | the entire signal                    |
+| Time of day      | soft discount, toggleable      | close to a gate                      |
+| Moon phase       | scored                         | deliberately **not** scored          |
+| Without a station| still useful                   | useless, and says so                 |
+
+Moon phase is the one worth spelling out. Fishing scores it because the moon is
+a proxy for water movement. Tidepooling doesn't, because NOAA's predicted
+heights already contain the spring/neap and perigean effects, so a phase bonus
+would count the same thing twice.
+
+Adding a third site should mean one file in `src/profiles/` and one line in
+`src/config.js`.
 
 ## How it fits together
 
@@ -42,10 +91,10 @@ page is showing). Any change to it calls `refresh()`, which re-fetches tides if
 needed and re-renders the whole grid. At 28 cells that's cheap, and it means
 there's no incremental-update logic to get wrong.
 
-`computeDayForecast()` in `solunar.js` is the centre of it: give it a date, a
-latitude/longitude and that day's tide extremes, and it returns everything the
-views need for one day — sun and moon times, the scored fishing windows, and the
-rating.
+`computeDayForecast()` in `core/day.js` is the centre of it: give it a date, a
+latitude/longitude, that day's tide extremes and a profile, and it returns
+everything the views need for one day — sun and moon times, the scored windows,
+and the rating.
 
 ## Conventions
 
@@ -57,6 +106,10 @@ rating.
   months at a time inside the polar circles.
 - **Astronomical time is `epochDays`**: days since 1999-12-31 00:00 UT, the
   epoch the orbital elements are defined against.
+- **Timezone is the caller's problem.** `computeDayFacts` defaults to the
+  running environment's UTC offset, which is right in a browser and wrong in a
+  Worker (which runs in UTC). Server-side callers pass the location's offset
+  from `utcOffsetHoursInZone`.
 
 ## Accuracy
 
@@ -68,7 +121,7 @@ better than the rating model needs.
 The tide *times and heights* are NOAA's own predictions. The *curve between*
 them is interpolated (see `sampleTideCurve`) and is an approximation.
 
-## The rating
+## The fishing rating
 
 `SCORING` holds every weight, and `RATING_SCALE` holds the two reference days
 the 0-5 rating is stretched between. Both are judgement calls, not a fitted
@@ -90,3 +143,25 @@ exists to call out the other case in words instead of contradicting it.
 
 Solunar theory has a plausible physical basis but its sharp "best window" claims
 are folk science — the code says so, and so does the app.
+
+## The tidepooling rating
+
+Same structure, different shape. `SCORING` in `profiles/tidepooling.js` holds
+the weights and `RATING_SCALE` the two reference days.
+
+The threshold for "the water is low" is a **percentile of the station's own
+predicted lows**, not a height in feet. It has to be: -1.0 ft MLLW is a
+red-letter day in San Diego and an ordinary Tuesday in Anchorage, where the
+range is six times larger. Deriving it from the predictions already loaded means
+it costs no extra request.
+
+Measured over 2190 day/station forecasts (six stations across 2026): 18% zero,
+21% one, 15% two, 22% three, 17% four, 7% five. That floor is real and not a
+modelling failure — a day whose only lows come at night offers nothing, and on
+the Pacific coast the extreme lows swap between daytime in winter and the middle
+of the night in summer, so half the year genuinely is better than the other
+half. It also varies a lot by coast (Seattle scores 1% zeroes, Miami 35%), which
+is a fair description of the tidepooling on offer rather than noise.
+
+Surf and swell matter enormously for both safety and visibility and aren't
+modelled yet. The app says so.

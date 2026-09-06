@@ -1,5 +1,5 @@
 /**
- * The day's tide curve, with the fishing windows drawn on top of it.
+ * The day's tide curve, with the profile's windows drawn on top of it.
  *
  * Rendered as inline SVG built from a string. There's no chart library here on
  * purpose: it's one chart with one shape, and hand-rolling it keeps the app a
@@ -11,9 +11,7 @@
  * the labels don't stretch.
  */
 
-import { MAJOR, MINOR } from '../solunar.js';
-import { formatClockTime } from '../time.js';
-import { sampleTideCurve } from '../tides.js';
+import { formatClockTime } from '../core/time.js';
 
 const VIEWBOX = { width: 720, height: 224 };
 
@@ -47,7 +45,16 @@ const PLACEHOLDER_HEIGHT_RANGE = { min: 0, max: 1 };
  * bonus-carrying minor period scores *lower* than a plain major, so the eye was
  * being pulled to the wrong band about a fifth of the time.
  */
-const BAND_PEAK_OPACITY = { best: 0.32, second: 0.24, [MAJOR]: 0.17, [MINOR]: 0.11 };
+const BAND_PEAK_OPACITY = { best: 0.32, second: 0.24, heavy: 0.17, light: 0.11 };
+
+/**
+ * A window's `weight` (0-1) chosen by the profile, mapped onto the two band
+ * shades the chart draws. The chart deliberately doesn't know *why* one window
+ * outranks another: fishing sets weight by major/minor, tidepooling by how far
+ * below the threshold the water drops, and both just want "heavier" or
+ * "lighter" out of it.
+ */
+const HEAVY_BAND_WEIGHT = 0.75;
 
 /**
  * Opacity at the edge of a band, as a fraction of its peak.
@@ -61,21 +68,21 @@ const BAND_EDGE_RATIO = 0.3;
 /**
  * Build the tide chart for one day.
  *
- * Works with or without tide data: without it you still get the fishing
- * windows, the daylight band and the hour axis, which is the whole point of the
- * chart for anyone outside NOAA's coverage.
+ * Works with or without tide data: without it you still get whatever windows
+ * the profile produced, the daylight band and the hour axis. That matters for
+ * fishing, which has plenty to say from the sun and moon alone; tidepooling
+ * simply produces no windows without a station, and says so.
  *
- * @param {import('../solunar.js').DayForecast} forecast
- * @param {import('../tides.js').TideEvent[]} allTideEvents Events spanning the
- *   day plus its neighbours, so the curve can be drawn all the way to midnight.
+ * @param {import('../core/day.js').DayFacts} forecast Already carries the
+ *   sampled `tideCurve`, so the chart draws exactly the samples the scoring saw.
  * @param {Date} [now] Current time, for the "now" marker. Omit to hide it.
  * @returns {string} SVG markup.
  */
-export function renderTideChart(forecast, allTideEvents, now) {
-  const curve = sampleTideCurve(allTideEvents, forecast.date);
+export function renderTideChart(forecast, profile, now) {
+  const curve = forecast.tideCurve ?? [];
   const scale = buildVerticalScale(curve);
 
-  const bands = renderFishingWindows(forecast);
+  const bands = renderWindowBands(forecast, profile);
   const layers = [
     `<defs>${bands.gradients}</defs>`,
     renderDaylightBand(forecast),
@@ -91,7 +98,7 @@ export function renderTideChart(forecast, allTideEvents, now) {
   return `
     <svg class="tide-chart" viewBox="0 0 ${VIEWBOX.width} ${VIEWBOX.height}"
          role="img"
-         aria-label="${describeChart(forecast, curve.length > 0)}">
+         aria-label="${describeChart(forecast, profile, curve.length > 0)}">
       ${layers.join('\n')}
     </svg>`;
 }
@@ -150,7 +157,7 @@ function renderDaylightBand({ sunrise, sunset }) {
 }
 
 /**
- * The fishing windows, as soft-edged vertical bands with captions above them.
+ * The windows, as soft-edged vertical bands with captions above them.
  *
  * A window centred near midnight runs off one edge and back in the other, so
  * each one can turn into two rectangles. The fade is computed against the
@@ -159,13 +166,21 @@ function renderDaylightBand({ sunrise, sunset }) {
  *
  * @returns {{markup: string, gradients: string}} The gradients belong in <defs>.
  */
-function renderFishingWindows({ windows }) {
+function renderWindowBands({ windows }, profile) {
   const markup = [];
   const gradients = [];
 
   windows.forEach((window, windowIndex) => {
     const peakOpacity =
-      BAND_PEAK_OPACITY[window.rank === 1 ? 'best' : window.rank === 2 ? 'second' : window.kind];
+      BAND_PEAK_OPACITY[
+        window.rank === 1
+          ? 'best'
+          : window.rank === 2
+            ? 'second'
+            : window.weight >= HEAVY_BAND_WEIGHT
+              ? 'heavy'
+              : 'light'
+      ];
     const color = window.rank === 1 ? 'var(--brass)' : 'var(--kelp)';
     const spanHours = hoursBetween(window.start, window.end);
 
@@ -181,7 +196,7 @@ function renderFishingWindows({ windows }) {
       markup.push(
         `<rect class="chart-window" x="${x}" y="${PLOT.top}" width="${xForHour(to) - x}"` +
           ` height="${PLOT_HEIGHT}" fill="url(#${gradientId})">` +
-          `<title>${describeWindow(window)}</title></rect>`,
+          `<title>${describeWindow(window, profile)}</title></rect>`,
       );
     });
 
@@ -237,16 +252,18 @@ function renderWindowCaption(window) {
   }" text-anchor="${anchor}">${window.label.toUpperCase()}</text>`;
 }
 
-/** Tooltip text: here the reason is worth spelling out, since there's room. */
-function describeWindow(window) {
-  const notes = [`${window.kind} period`];
-  if (window.sunEvent) notes.push(`near ${window.sunEvent}`);
-  if (window.tideEvent) {
-    notes.push(`near ${window.tideEvent.type === 'H' ? 'high' : 'low'} tide`);
-  }
+/**
+ * Tooltip text: here the reason is worth spelling out, since there's room.
+ *
+ * The notes are the profile's business, so it supplies them and the chart just
+ * joins them up.
+ */
+function describeWindow(window, profile) {
+  const notes = profile.describeWindow?.(window) ?? [];
+  const detail = notes.length > 0 ? ` (${notes.join(', ')})` : '';
   return `${window.label}, ${formatClockTime(window.start)} to ${formatClockTime(
     window.end,
-  )} (${notes.join(', ')})`;
+  )}${detail}`;
 }
 
 /** Horizontal gridlines with height labels, plus the baseline under the plot. */
@@ -383,7 +400,7 @@ function formatHourLabel(hour) {
 }
 
 /** Text alternative for screen readers. */
-function describeChart(forecast, hasTideData) {
+function describeChart(forecast, profile, hasTideData) {
   const date = forecast.date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
   const tidePart = hasTideData
     ? `${forecast.tides.length} tide changes`
@@ -392,5 +409,5 @@ function describeChart(forecast, hasTideData) {
   const bestPart = best
     ? ` Best window: ${best.label.toLowerCase()}, ${formatClockTime(best.start)} to ${formatClockTime(best.end)}.`
     : '';
-  return `Tide and fishing window chart for ${date}: ${tidePart}, ${forecast.windows.length} fishing windows.${bestPart}`;
+  return `Tide and ${profile.windowNoun} chart for ${date}: ${tidePart}, ${forecast.windows.length} ${profile.windowNoun}s.${bestPart}`;
 }
