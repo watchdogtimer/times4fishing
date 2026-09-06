@@ -28,7 +28,8 @@ export function renderDayDetail({ container, forecast, tideEvents }) {
     <div class="chart-panel">
       ${renderTideChart(forecast, tideEvents, new Date())}
       <p class="chart-caption">
-        Tide height through the day. Shaded bands are fishing windows, gold ones are prime.
+        Tide height through the day. Shaded bands are fishing windows, and the gold one is
+        the day's best. Wider bands are major periods (2 hours), narrow ones minor (1 hour).
         The lighter background is daylight.
       </p>
     </div>
@@ -75,16 +76,17 @@ function renderWindows(windows) {
 
   return windows
     .map((window) => {
-      const notes = [];
-      if (window.sunOverlap) notes.push('overlaps sunrise/sunset');
+      const notes = [window.label];
+      if (window.sunEvent) notes.push(`near ${window.sunEvent}`);
       if (window.tideEvent) {
         const kind = window.tideEvent.type === 'H' ? 'high' : 'low';
         notes.push(`near ${kind} tide (${window.tideEvent.height.toFixed(1)} ft)`);
       }
       return `
-        <div class="win-row${window.prime ? ' prime' : ''}">
+        <div class="win-row${window.isBest ? ' best' : ''}">
           <span class="tag">${window.kind}</span>
           <span class="time">${formatClockTime(window.start)} – ${formatClockTime(window.end)}</span>
+          ${window.isBest ? '<span class="best-tag">Best</span>' : ''}
           <span class="note">${notes.join(' · ')}</span>
         </div>`;
     })

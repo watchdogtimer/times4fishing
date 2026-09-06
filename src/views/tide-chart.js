@@ -11,13 +11,14 @@
  * the labels don't stretch.
  */
 
+import { MAJOR, MINOR } from '../solunar.js';
 import { formatClockTime } from '../time.js';
 import { sampleTideCurve } from '../tides.js';
 
-const VIEWBOX = { width: 720, height: 210 };
+const VIEWBOX = { width: 720, height: 224 };
 
-/** Space reserved outside the plot area for axis labels. */
-const PADDING = { top: 22, right: 14, bottom: 26, left: 38 };
+/** Space reserved outside the plot area for axis labels and the band captions. */
+const PADDING = { top: 36, right: 14, bottom: 26, left: 38 };
 
 const PLOT = {
   left: PADDING.left,
@@ -39,6 +40,25 @@ const VERTICAL_PADDING_RATIO = 0.18;
 const PLACEHOLDER_HEIGHT_RANGE = { min: 0, max: 1 };
 
 /**
+ * Peak opacity of each window band.
+ *
+ * Gold is reserved for the single best window of the day. It used to mark any
+ * window that picked up a sun or tide bonus, which was actively misleading: a
+ * bonus-carrying minor period scores *lower* than a plain major, so the eye was
+ * being pulled to the wrong band about a fifth of the time.
+ */
+const BAND_PEAK_OPACITY = { best: 0.32, [MAJOR]: 0.17, [MINOR]: 0.11 };
+
+/**
+ * Opacity at the edge of a band, as a fraction of its peak.
+ *
+ * The windows are hard-edged in the model (a major is exactly two hours) but
+ * fish don't switch off on the hour. Fading the shoulders says "peak here,
+ * tapering either side" without claiming a precision the model doesn't have.
+ */
+const BAND_EDGE_RATIO = 0.3;
+
+/**
  * Build the tide chart for one day.
  *
  * Works with or without tide data: without it you still get the fishing
@@ -55,9 +75,11 @@ export function renderTideChart(forecast, allTideEvents, now) {
   const curve = sampleTideCurve(allTideEvents, forecast.date);
   const scale = buildVerticalScale(curve);
 
+  const bands = renderFishingWindows(forecast);
   const layers = [
+    `<defs>${bands.gradients}</defs>`,
     renderDaylightBand(forecast),
-    renderFishingWindows(forecast),
+    bands.markup,
     renderGridlines(scale, curve.length > 0),
     renderTideCurve(curve, scale),
     renderTideExtremes(forecast.tides, scale),
@@ -128,35 +150,101 @@ function renderDaylightBand({ sunrise, sunset }) {
 }
 
 /**
- * The fishing windows, as vertical bands with a label above the plot.
+ * The fishing windows, as soft-edged vertical bands with captions above them.
  *
  * A window centred near midnight runs off one edge and back in the other, so
- * each one can turn into two rectangles.
+ * each one can turn into two rectangles. The fade is computed against the
+ * *whole* window rather than each rectangle, so a split window still reads as
+ * one shape with its peak in the right place.
+ *
+ * @returns {{markup: string, gradients: string}} The gradients belong in <defs>.
  */
 function renderFishingWindows({ windows }) {
-  return windows
-    .map((window) => {
-      const className = `chart-window ${window.prime ? 'prime' : window.kind.toLowerCase()}`;
-      const bands = splitAtMidnight(window.start, window.end)
-        .map(([from, to]) => {
-          const x = xForHour(from);
-          return `<rect class="${className}" x="${x}" y="${PLOT.top}" width="${
-            xForHour(to) - x
-          }" height="${PLOT_HEIGHT}"><title>${window.kind} window, ${formatClockTime(
-            window.start,
-          )} to ${formatClockTime(window.end)}</title></rect>`;
-        })
-        .join('');
+  const markup = [];
+  const gradients = [];
 
-      const label = `<text class="chart-window-label ${
-        window.prime ? 'prime' : ''
-      }" x="${xForHour(window.center)}" y="${PLOT.top - 8}" text-anchor="middle">${
-        window.prime ? 'PRIME ' : ''
-      }${window.kind.toUpperCase()}</text>`;
+  windows.forEach((window, windowIndex) => {
+    const peakOpacity = window.isBest
+      ? BAND_PEAK_OPACITY.best
+      : BAND_PEAK_OPACITY[window.kind];
+    const color = window.isBest ? 'var(--brass)' : 'var(--kelp)';
+    const spanHours = hoursBetween(window.start, window.end);
 
-      return bands + label;
-    })
-    .join('\n');
+    splitAtMidnight(window.start, window.end).forEach(([from, to], partIndex) => {
+      const gradientId = `window-${windowIndex}-${partIndex}`;
+      // Where this rectangle sits within the whole window, as fractions 0..1.
+      const fromFraction = hoursBetween(window.start, from) / spanHours;
+      const toFraction = hoursBetween(window.start, to) / spanHours;
+
+      gradients.push(bandGradient(gradientId, color, peakOpacity, fromFraction, toFraction));
+
+      const x = xForHour(from);
+      markup.push(
+        `<rect class="chart-window" x="${x}" y="${PLOT.top}" width="${xForHour(to) - x}"` +
+          ` height="${PLOT_HEIGHT}" fill="url(#${gradientId})">` +
+          `<title>${describeWindow(window)}</title></rect>`,
+      );
+    });
+
+    markup.push(renderWindowCaption(window));
+  });
+
+  return { markup: markup.join('\n'), gradients: gradients.join('') };
+}
+
+/**
+ * A horizontal gradient that peaks in the middle of the window and fades at
+ * both shoulders, clipped to the slice this rectangle covers.
+ */
+function bandGradient(id, color, peakOpacity, fromFraction, toFraction) {
+  const edgeOpacity = peakOpacity * BAND_EDGE_RATIO;
+  /** Triangular ramp: full at the centre of the window, `edge` at either end. */
+  const opacityAt = (fraction) =>
+    edgeOpacity + (peakOpacity - edgeOpacity) * (1 - Math.abs(2 * fraction - 1));
+
+  const stop = (offset, opacity) =>
+    `<stop offset="${offset.toFixed(3)}" stop-color="${color}" stop-opacity="${opacity.toFixed(3)}"/>`;
+
+  const stops = [stop(0, opacityAt(fromFraction))];
+  // Only include the peak if this slice actually contains the window's centre.
+  if (fromFraction < 0.5 && toFraction > 0.5) {
+    stops.push(stop((0.5 - fromFraction) / (toFraction - fromFraction), peakOpacity));
+  }
+  stops.push(stop(1, opacityAt(toFraction)));
+
+  return `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0">${stops.join('')}</linearGradient>`;
+}
+
+/**
+ * The caption above a band: what the window is, and whether it's the best one.
+ *
+ * The *reason* a window is good (a tide change, sunrise) isn't spelled out here
+ * on purpose. The chart already shows it: the band visibly contains the tide
+ * dot or the dashed sun line. Words would just crowd the top of the plot.
+ */
+function renderWindowCaption(window) {
+  const x = xForHour(window.center);
+  const anchor = labelAnchorFor(x);
+  const name = window.label.toUpperCase();
+
+  const best = window.isBest
+    ? `<text class="chart-window-label best" x="${x}" y="${PLOT.top - 20}" text-anchor="${anchor}">BEST</text>`
+    : '';
+  return `${best}<text class="chart-window-label${
+    window.isBest ? ' best' : ''
+  }" x="${x}" y="${PLOT.top - 8}" text-anchor="${anchor}">${name}</text>`;
+}
+
+/** Tooltip text: here the reason is worth spelling out, since there's room. */
+function describeWindow(window) {
+  const notes = [`${window.kind} period`];
+  if (window.sunEvent) notes.push(`near ${window.sunEvent}`);
+  if (window.tideEvent) {
+    notes.push(`near ${window.tideEvent.type === 'H' ? 'high' : 'low'} tide`);
+  }
+  return `${window.label}, ${formatClockTime(window.start)} to ${formatClockTime(
+    window.end,
+  )} (${notes.join(', ')})`;
 }
 
 /** Horizontal gridlines with height labels, plus the baseline under the plot. */
@@ -266,6 +354,11 @@ function renderHourAxis() {
  * Small helpers
  * ---------------------------------------------------------------- */
 
+/** Length of an hour range, counting forward across midnight if it wraps. */
+function hoursBetween(from, to) {
+  return ((to - from) % HOURS_PER_DAY + HOURS_PER_DAY) % HOURS_PER_DAY;
+}
+
 /** Split an hour range that wraps past midnight into ranges that don't. */
 function splitAtMidnight(start, end) {
   return end >= start ? [[start, end]] : [[start, HOURS_PER_DAY], [0, end]];
@@ -293,5 +386,9 @@ function describeChart(forecast, hasTideData) {
   const tidePart = hasTideData
     ? `${forecast.tides.length} tide changes`
     : 'no tide data for this location';
-  return `Tide and fishing window chart for ${date}: ${tidePart}, ${forecast.windows.length} fishing windows.`;
+  const best = forecast.windows.find((window) => window.isBest);
+  const bestPart = best
+    ? ` Best window: ${best.label.toLowerCase()}, ${formatClockTime(best.start)} to ${formatClockTime(best.end)}.`
+    : '';
+  return `Tide and fishing window chart for ${date}: ${tidePart}, ${forecast.windows.length} fishing windows.${bestPart}`;
 }

@@ -26,6 +26,21 @@ import { addHours, isWithinHours, localToUtcOffsetHours } from './time.js';
 export const MAJOR = 'Major';
 export const MINOR = 'Minor';
 
+/**
+ * The four solunar moments, and what to call them in the UI.
+ *
+ * "Major" and "Minor" are the traditional solunar names and anglers know them,
+ * but they say nothing about what's actually happening. The label is the plain
+ * description, which is what the chart shows; the kind is kept for the tables
+ * and for the scoring weights.
+ */
+export const WINDOW_SOURCES = {
+  moonOverhead: { kind: MAJOR, label: 'Moon overhead' },
+  moonUnderfoot: { kind: MAJOR, label: 'Moon underfoot' },
+  moonrise: { kind: MINOR, label: 'Moonrise' },
+  moonset: { kind: MINOR, label: 'Moonset' },
+};
+
 /** Every tunable in the rating model. */
 export const SCORING = {
   /** Half-width of each window, in hours. Majors get a wider window than minors. */
@@ -78,14 +93,18 @@ const MAX_DAILY_SCORE = [MAJOR, MAJOR, MINOR, MINOR].reduce(
 
 /**
  * @typedef {object} FishingWindow
+ * @property {keyof WINDOW_SOURCES} source What causes this window.
+ * @property {string} label      Plain description, e.g. "Moon overhead".
  * @property {'Major'|'Minor'} kind
  * @property {number} center     Local hours at the peak of the window.
  * @property {number} start      Local hours.
  * @property {number} end        Local hours. May wrap past midnight.
  * @property {boolean} prime     Overlaps a sun event or a tide change.
- * @property {boolean} sunOverlap
+ * @property {'sunrise'|'sunset'|null} sunEvent Which sun event, if any.
  * @property {TideEvent|null} tideEvent
  * @property {number} score
+ * @property {boolean} isBest    The day's highest-scoring window. Exactly one
+ *   window per day has this, so it's safe to drive the UI's "go here" styling.
  */
 
 /**
@@ -147,13 +166,15 @@ export function computeDayForecast({ date, latitude, longitude, tides = [] }) {
 
   const context = { sunrise, sunset, tides, phase };
   const windows = [
-    buildWindow(MAJOR, moonOverhead, context),
-    buildWindow(MAJOR, moonUnderfoot, context),
-    buildWindow(MINOR, moonrise, context),
-    buildWindow(MINOR, moonset, context),
+    buildWindow('moonOverhead', moonOverhead, context),
+    buildWindow('moonUnderfoot', moonUnderfoot, context),
+    buildWindow('moonrise', moonrise, context),
+    buildWindow('moonset', moonset, context),
   ]
     .filter(Boolean)
     .sort((a, b) => a.start - b.start);
+
+  markBestWindow(windows);
 
   return {
     date,
@@ -173,33 +194,56 @@ export function computeDayForecast({ date, latitude, longitude, tides = [] }) {
 /**
  * Turn one solunar moment into a scored window.
  *
+ * @param {keyof WINDOW_SOURCES} source
  * @returns {FishingWindow|null} Null when the moment doesn't occur that day.
  */
-function buildWindow(kind, center, { sunrise, sunset, tides, phase }) {
+function buildWindow(source, center, { sunrise, sunset, tides, phase }) {
   if (center === null) return null;
 
+  const { kind, label } = WINDOW_SOURCES[source];
   const halfSpan = SCORING.halfSpanHours[kind];
   const tolerance = SCORING.sunToleranceHours;
 
-  const sunOverlap =
-    isWithinHours(center, sunrise, tolerance) || isWithinHours(center, sunset, tolerance);
+  const sunEvent = isWithinHours(center, sunrise, tolerance)
+    ? 'sunrise'
+    : isWithinHours(center, sunset, tolerance)
+      ? 'sunset'
+      : null;
   const tideEvent =
     tides.find((tide) => isWithinHours(center, tide.hour, SCORING.tideToleranceHours)) ?? null;
 
   let score = SCORING.baseScore[kind] * phaseMultiplier(phase.illuminatedFraction);
-  if (sunOverlap) score += SCORING.sunBonus[kind];
+  if (sunEvent) score += SCORING.sunBonus[kind];
   if (tideEvent) score += SCORING.tideBonus[kind];
 
   return {
+    source,
+    label,
     kind,
     center,
     start: addHours(center, -halfSpan),
     end: addHours(center, halfSpan),
-    prime: sunOverlap || tideEvent !== null,
-    sunOverlap,
+    prime: sunEvent !== null || tideEvent !== null,
+    sunEvent,
     tideEvent,
     score,
+    isBest: false,
   };
+}
+
+/**
+ * Flag the day's highest-scoring window.
+ *
+ * Ties are common — the two major periods often score identically — so the
+ * earliest wins, which is deterministic and puts the marker on the one you can
+ * still get to. `windows` must already be sorted by start time.
+ */
+function markBestWindow(windows) {
+  let best = null;
+  for (const window of windows) {
+    if (best === null || window.score > best.score) best = window;
+  }
+  if (best) best.isBest = true;
 }
 
 /**
@@ -221,8 +265,5 @@ function toRating(windows) {
 
 /** The day's highest-scoring window, or null if the day has none. */
 export function bestWindow(forecast) {
-  return forecast.windows.reduce(
-    (best, window) => (best === null || window.score > best.score ? window : best),
-    null,
-  );
+  return forecast.windows.find((window) => window.isBest) ?? null;
 }

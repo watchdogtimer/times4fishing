@@ -41,9 +41,9 @@
   </div>
 
   <div class="legend">
-    <span><i class="dot prime"></i> Prime — overlaps sunrise/sunset or a tide change</span>
-    <span><i class="dot major"></i> Major period — moon overhead or underfoot</span>
-    <span><i class="dot minor"></i> Minor period — moonrise or moonset</span>
+    <span><i class="dot prime"></i> Prime — a window that also lands on sunrise, sunset, or a tide change</span>
+    <span><i class="dot major"></i> Major period — moon overhead or underfoot, 2 hours</span>
+    <span><i class="dot minor"></i> Minor period — moonrise or moonset, 1 hour</span>
   </div>
 
   <div class="pagebar">
@@ -65,6 +65,7 @@
     <summary>How the ratings are calculated</summary>
     <div class="body">
       <p><b>Moon &amp; sun windows are computed directly from astronomy</b> for your exact coordinates: two daily <b>major periods</b> (moon overhead / underfoot) and two <b>minor periods</b> (moonrise / moonset), per John Alden Knight's 1926 solunar theory. A window is flagged <b>Prime</b> when it overlaps sunrise, sunset, or — if you've added a NOAA station — an actual high or low tide.</p>
+      <p>Major periods outscore minor ones, and a prime minor can still rank below a plain major, so <b>Prime doesn't mean best</b>. On a day's chart the single highest-scoring window is the gold one, marked <b>Best</b>.</p>
       <p><b>Tide times</b> come from NOAA's free CO-OPS API for the station you set, so they're real predictions, not estimates — but that only covers stations in NOAA's network (mainly the US and territories). Elsewhere you'd need a different tide data source.</p>
       <p><b>The tide curve</b> on each day is drawn between NOAA's published high and low waters by fitting a half cosine across each half-cycle. The peaks and troughs are exact; the shape in between is a very good approximation, but it isn't NOAA's own six-minute prediction. Don't plan a bar crossing by it.</p>
       <p>Solunar theory has a real physical basis (lunar gravity drives tides, and moving water is a well-documented feeding trigger) but the specific claim of sharp 1–2 hour "best window" spikes is folk-science in origin, not a peer-reviewed model — treat the rating as one input, not gospel. Weather, pressure, and species behavior matter too and aren't modeled here.</p>
