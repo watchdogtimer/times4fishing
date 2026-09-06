@@ -336,7 +336,8 @@ export default {
   id: 'tidepooling',
   hostnames: ['times4tidepooling.com', 'www.times4tidepooling.com'],
   siteName: 'Low Water',
-  title: 'Low Water — Tidepooling Times',
+  headline: 'Best times for tide pooling',
+  title: 'Best times for tide pooling — Low Water',
   tagline:
     'Four weeks at a time, ranked by when the tide drops far enough, for long enough, in daylight. No ads, no accounts.',
   activity: 'tidepooling',

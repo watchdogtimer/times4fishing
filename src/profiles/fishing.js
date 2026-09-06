@@ -269,7 +269,8 @@ export default {
   id: 'fishing',
   hostnames: ['times4fishing.com', 'www.times4fishing.com'],
   siteName: 'Tide & Moon',
-  title: 'Tide & Moon — Fishing Windows',
+  headline: 'Best times for ocean fishing',
+  title: 'Best times for ocean fishing — Tide & Moon',
   tagline:
     'Four weeks at a time, ranked by when the sun, moon, and tide line up to put fish on the feed. No ads, no accounts.',
   activity: 'fishing',

@@ -177,7 +177,7 @@ function rewriteShell(assetResponse, profile) {
       element: (element) => element.setAttribute('content', profile.tagline),
     })
     .on('html', { element: (element) => element.setAttribute('data-profile', profile.id) })
-    .on('#siteName', { element: (element) => element.setInnerContent(profile.siteName) })
+    .on('#headline', { element: (element) => element.setInnerContent(profile.headline) })
     .on('#tagline', { element: (element) => element.setInnerContent(profile.tagline) })
     .on('#aboutBody', {
       element: (element) => element.setInnerContent(profile.aboutHtml, { html: true }),

@@ -114,7 +114,7 @@ describe('profile invariants', () => {
 
     test(`${name}: declares everything the views and the Worker read off it`, () => {
       for (const key of [
-        'id', 'hostnames', 'siteName', 'title', 'tagline', 'activity', 'windowNoun',
+        'id', 'hostnames', 'siteName', 'headline', 'title', 'tagline', 'activity', 'windowNoun',
         'requiresTideStation', 'ratingTiers', 'windowsHeading', 'emptyWindowsNote',
         'chartCaption', 'aboutHtml', 'llmsSummary', 'pathPrefix', 'pageTitleVerb',
         'locations', 'tableTimeHeading', 'tableDetailHeading',

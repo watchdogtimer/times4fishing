@@ -17,6 +17,7 @@ import {
   sampleTideCurve,
 } from './core/tides.js';
 import { addDays, isSameDay, startOfDay, toDateKey } from './core/time.js';
+import { loadSettings, saveSettings } from './core/settings.js';
 import { emptyOutlook, fetchWeatherOutlook } from './core/weather.js';
 import { stationTideStats } from './profiles/tidepooling.js';
 import { renderCalendarGrid } from './views/calendar-grid.js';
@@ -30,6 +31,7 @@ const DAYS_PER_PAGE = 28;
 
 /** San Diego, CA — somewhere to start before the user sets a location. */
 const DEFAULT_LOCATION = { latitude: 32.7157, longitude: -117.1611 };
+const DEFAULT_PLACE_LABEL = 'San Diego, CA (default)';
 
 const elements = {
   grid: document.getElementById('grid'),
@@ -74,6 +76,63 @@ const state = {
   ...DEFAULT_LOCATION,
 };
 
+/**
+ * Put last visit's location and station back on the page.
+ *
+ * Runs before the first render so the opening calendar is already the one you
+ * left, rather than San Diego for a beat and then a second load.
+ */
+function restoreSavedSettings() {
+  const saved = loadSettings();
+  if (!saved) return;
+
+  state.latitude = saved.latitude;
+  state.longitude = saved.longitude;
+  state.stationId = saved.stationId;
+  state.includeSleepingHours = saved.includeSleepingHours;
+
+  elements.latitude.value = saved.latitude.toFixed(4);
+  elements.longitude.value = saved.longitude.toFixed(4);
+  elements.station.value = saved.stationId ?? '';
+  elements.includeSleeping.checked = saved.includeSleepingHours;
+  if (saved.placeLabel) elements.place.textContent = saved.placeLabel;
+}
+
+/**
+ * Adopt a new location and redraw.
+ *
+ * The place line is passed in rather than left alone, because it used to go
+ * stale: typing new coordinates changed the calendar but left the label reading
+ * "San Diego, CA (default)". Harmless while it was only on screen, misleading
+ * once we started saving it.
+ */
+function applyLocation(location, placeLabel) {
+  Object.assign(state, location);
+  state.stationId = elements.station.value.trim() || null;
+  elements.place.textContent = placeLabel;
+  rememberSettings();
+  hideDetail();
+  refresh();
+}
+
+/** What to call a set of coordinates when we've no better name for them. */
+function describePlace({ latitude, longitude }) {
+  const isDefault =
+    latitude === DEFAULT_LOCATION.latitude && longitude === DEFAULT_LOCATION.longitude;
+  return isDefault ? DEFAULT_PLACE_LABEL : `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+}
+
+/** Remember where we are, so the next visit opens here. */
+function rememberSettings() {
+  saveSettings({
+    latitude: state.latitude,
+    longitude: state.longitude,
+    stationId: state.stationId,
+    placeLabel: elements.place.textContent.trim(),
+    includeSleepingHours: state.includeSleepingHours,
+  });
+}
+
 /* ---------------------------------------------------------------- *
  * Profile chrome
  * ---------------------------------------------------------------- */
@@ -94,7 +153,7 @@ function applyProfileChrome() {
     const element = document.getElementById(id);
     if (element) element.innerHTML = html;
   };
-  set('siteName', profile.siteName);
+  set('headline', profile.headline);
   set('tagline', profile.tagline);
   set('aboutBody', profile.aboutHtml);
   set(
@@ -275,10 +334,7 @@ elements.update.addEventListener('click', () => {
     setStatus('Enter a latitude between -90 and 90 and a longitude between -180 and 180.');
     return;
   }
-  Object.assign(state, location);
-  state.stationId = elements.station.value.trim() || null;
-  hideDetail();
-  refresh();
+  applyLocation(location, describePlace(location));
 });
 
 elements.locate.addEventListener('click', () => {
@@ -289,10 +345,13 @@ elements.locate.addEventListener('click', () => {
   setStatus('Asking your browser for your location…');
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      elements.latitude.value = position.coords.latitude.toFixed(4);
-      elements.longitude.value = position.coords.longitude.toFixed(4);
-      elements.place.textContent = 'Your current location';
-      elements.update.click();
+      const location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+      elements.latitude.value = location.latitude.toFixed(4);
+      elements.longitude.value = location.longitude.toFixed(4);
+      applyLocation(location, 'Your current location');
     },
     (error) => setStatus(`Could not get your location: ${error.message}`),
   );
@@ -332,9 +391,14 @@ elements.nextPage.addEventListener('click', () => {
 
 elements.includeSleeping.addEventListener('change', () => {
   state.includeSleepingHours = elements.includeSleeping.checked;
+  rememberSettings();
   hideDetail();
   render(); // Only the scoring changed, so the tides we already have still stand.
 });
 
 applyProfileChrome();
+// Before the first render, so the opening calendar is the one you left rather
+// than the default flashing up and being replaced. `refresh` owns the status
+// line from here on, so restoring says nothing — the filled-in fields show it.
+restoreSavedSettings();
 refresh();

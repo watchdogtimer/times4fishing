@@ -17,7 +17,10 @@ import tidepooling from './profiles/tidepooling.js';
  * @typedef {object} Profile
  * @property {string} id           Stable slug, also used as a CSS hook.
  * @property {string[]} hostnames  Domains this profile answers on.
- * @property {string} siteName     Short name, e.g. "Tide & Moon".
+ * @property {string} siteName     Brand name, e.g. "Tide & Moon". Used where a
+ *   publisher is meant — JSON-LD, llms.txt — not as the page's headline.
+ * @property {string} headline     The <h1>, e.g. "Best times for ocean fishing".
+ *   Says what the site is for; `siteName` says who it is.
  * @property {string} title        Full <title>.
  * @property {string} tagline      One-line description, used in the header and meta.
  * @property {string} activity     Gerund used in generated prose, e.g. "fishing".
