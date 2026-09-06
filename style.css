@@ -60,15 +60,21 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
   padding:8px 14px; font-size:13px; cursor:pointer; font-family:'Work Sans',sans-serif; height: 34px;
 }
 .controls button:hover{ border-color: var(--brass); }
+.controls .toggle{ flex-basis:100%; display:flex; align-items:flex-start; gap:7px;
+  cursor:pointer; font-size:13px; padding-top:2px; }
+.controls .toggle input{ width:auto; margin:2px 0 0; accent-color: var(--brass); cursor:pointer; }
+.controls .toggle em{ display:block; font-style:normal; font-size:11.5px; color:var(--foam-dim); }
 .controls .place{font-size:13px; color:var(--foam-dim);}
 .controls .tide-status{ font-size:12px; color:var(--foam-dim); width:100%; }
 
-.legend{ display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--foam-dim); margin-bottom:18px; }
+.legend{ display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:12px; color:var(--foam-dim); margin-bottom:18px; }
+.legend .legend-note{ padding-left:6px; border-left:1px solid var(--line); }
 .legend span{display:inline-flex; align-items:center; gap:6px;}
 .dot{width:9px;height:9px; display:inline-block; border-radius:50%;}
 .dot.prime{background:var(--brass);}
 .dot.major{background:var(--kelp);}
 .dot.minor{background:var(--tide-low);}
+.dot.quiet{background:rgba(228,239,236,0.3);}
 
 .pagebar{
   display:flex; align-items:center; justify-content:space-between;
@@ -105,11 +111,17 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
 .cell.selected{ outline: 1px solid var(--brass); outline-offset:-1px; background:var(--panel-2); }
 .cell.today .num{ color: var(--brass); }
 .cell .num{ font-family:'Fraunces', serif; font-size:16px; font-weight:500; }
-.cell .bestline{ font-size:11px; color: var(--foam-dim); margin-top: 20px; line-height:1.35; }
-.cell .bestline b{ color: var(--brass); font-weight:600; }
-.gauge{ position:absolute; left:8px; right:8px; bottom:8px; height:4px; background: rgba(228,239,236,0.1); }
-.gauge i{ display:block; height:100%; background: var(--kelp); }
-.gauge.prime i{ background: var(--brass); }
+.cell .bestline{ position:absolute; left:8px; bottom:8px; font-size:11px; color: var(--foam-dim); line-height:1.35; }
+
+/* Rating dots. Colour and count both encode the rating, so the ranking still
+   reads without relying on colour. */
+.cell .rating{ display:flex; gap:3px; margin-top:8px; }
+.cell .rating i{ width:7px; height:7px; border-radius:50%; display:block; }
+.cell .rating i.off{ background: rgba(228,239,236,0.13); }
+.cell.excellent .rating i.on{ background: var(--brass); }
+.cell.good      .rating i.on{ background: var(--kelp); }
+.cell.fair      .rating i.on{ background: var(--tide-low); }
+.cell.quiet     .rating i.on{ background: rgba(228,239,236,0.3); }
 
 .detail{ margin-top: 26px; border:1px solid var(--line); background: var(--panel); padding: 22px 24px; display:none; }
 .detail.show{display:block;}

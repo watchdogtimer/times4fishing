@@ -4,8 +4,8 @@
     {
       "name": "times4fishing",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8788"],
-      "port": 8788
+      "runtimeArgs": ["-m", "http.server", "8790"],
+      "port": 8790
     }
   ]
 }

@@ -35,6 +35,7 @@ const elements = {
   findStation: document.getElementById('findStation'),
   previousPage: document.getElementById('prevPage'),
   nextPage: document.getElementById('nextPage'),
+  includeSleeping: document.getElementById('includeSleeping'),
 };
 
 const state = {
@@ -44,6 +45,8 @@ const state = {
   stationId: null,
   /** @type {import('./tides.js').TideData} Tides for the page currently on screen. */
   tideData: emptyTideData(),
+  /** Count windows at any hour in full, rather than discounting the small hours. */
+  includeSleepingHours: false,
   ...DEFAULT_LOCATION,
 };
 
@@ -76,10 +79,21 @@ async function loadTides(start, end) {
   }
 }
 
-/** Fetch what we need and redraw the calendar. */
+/** Fetch the tides for the current page, then redraw. */
 async function refresh() {
-  const { today, start, end } = currentPageRange();
+  const { start, end } = currentPageRange();
   await loadTides(start, end);
+  render();
+}
+
+/**
+ * Redraw the calendar from whatever is already in `state`.
+ *
+ * Split out from `refresh` so the settings that only affect scoring — the
+ * sleeping-hours toggle — can redraw without re-fetching from NOAA.
+ */
+function render() {
+  const { today, start, end } = currentPageRange();
 
   const forecastFor = (date) =>
     computeDayForecast({
@@ -87,6 +101,7 @@ async function refresh() {
       latitude: state.latitude,
       longitude: state.longitude,
       tides: state.tideData.byDate[toDateKey(date)] ?? [],
+      includeSleepingHours: state.includeSleepingHours,
     });
 
   elements.rangeLabel.textContent = formatRange(start, end);
@@ -211,6 +226,12 @@ elements.nextPage.addEventListener('click', () => {
   state.pageOffset += 1;
   hideDetail();
   refresh();
+});
+
+elements.includeSleeping.addEventListener('change', () => {
+  state.includeSleepingHours = elements.includeSleeping.checked;
+  hideDetail();
+  render(); // Only the scoring changed, so the tides we already have still stand.
 });
 
 refresh();

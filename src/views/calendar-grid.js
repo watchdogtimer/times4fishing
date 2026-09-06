@@ -10,6 +10,26 @@ import { bestWindow } from '../solunar.js';
 import { formatClockTime, isSameDay } from '../time.js';
 
 const DAYS_PER_WEEK = 7;
+const MAX_RATING = 5;
+
+/**
+ * How a rating is described and coloured.
+ *
+ * The cell used to colour itself gold when the day's best window happened to
+ * carry a sun or tide bonus, which is a different question from whether the
+ * day is any good — the gold day was actually the worse of the pair about 1
+ * time in 10. Colour now follows the rating, so gold really does mean better,
+ * and the filled-dot count says the same thing again for anyone who can't rely
+ * on the colour.
+ */
+const RATING_TIERS = [
+  { min: 4, name: 'Excellent', className: 'excellent' },
+  { min: 3, name: 'Good', className: 'good' },
+  { min: 2, name: 'Fair', className: 'fair' },
+  { min: 0, name: 'Quiet', className: 'quiet' },
+];
+
+const tierFor = (rating) => RATING_TIERS.find((tier) => rating >= tier.min);
 
 /**
  * Render the grid into `container`.
@@ -52,28 +72,34 @@ function buildOutOfRangeCell(date) {
 
 function buildDayCell(date, today, forecast, onSelectDay) {
   const best = bestWindow(forecast);
-  const isPrime = best?.prime ?? false;
+  const tier = tierFor(forecast.rating);
 
   // A real button so it's keyboard reachable and announced as clickable.
   const cell = document.createElement('button');
   cell.type = 'button';
-  cell.className = `cell${isSameDay(date, today) ? ' today' : ''}`;
+  cell.className = `cell ${tier.className}${isSameDay(date, today) ? ' today' : ''}`;
   cell.setAttribute(
     'aria-label',
-    `${date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}, ` +
-      `rated ${forecast.rating} out of 5`,
+    `${date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}: ` +
+      `${tier.name}, ${forecast.rating} out of ${MAX_RATING}` +
+      `${best ? `. Best window from ${formatClockTime(best.start)}` : ''}`,
   );
-
-  const bestLine = best
-    ? `${isPrime ? '<b>Prime</b> · ' : ''}${formatClockTime(best.start)}`
-    : '—';
-  const gaugePercent = (forecast.rating / 5) * 100;
 
   cell.innerHTML = `
     <div class="num">${date.getDate()}</div>
-    <div class="bestline">${bestLine}</div>
-    <div class="gauge${isPrime ? ' prime' : ''}"><i style="width:${gaugePercent}%"></i></div>`;
+    <div class="rating" title="${tier.name} — ${forecast.rating}/${MAX_RATING}">${renderDots(
+      forecast.rating,
+    )}</div>
+    <div class="bestline">${best ? formatClockTime(best.start) : '—'}</div>`;
 
   cell.addEventListener('click', () => onSelectDay(forecast, cell));
   return cell;
+}
+
+/** The rating as filled and empty dots, countable at a glance across the grid. */
+function renderDots(rating) {
+  return Array.from(
+    { length: MAX_RATING },
+    (_, index) => `<i class="${index < rating ? 'on' : 'off'}"></i>`,
+  ).join('');
 }

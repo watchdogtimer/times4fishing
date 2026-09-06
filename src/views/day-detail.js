@@ -77,6 +77,7 @@ function renderWindows(windows) {
   return windows
     .map((window) => {
       const notes = [window.label];
+      if (window.fishableFraction < 0.5) notes.push('outside fishable hours');
       if (window.sunEvent) notes.push(`near ${window.sunEvent}`);
       if (window.tideEvent) {
         const kind = window.tideEvent.type === 'H' ? 'high' : 'low';

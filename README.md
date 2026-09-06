@@ -68,6 +68,19 @@ better than the rating model needs.
 The tide *times and heights* are NOAA's own predictions. The *curve between*
 them is interpolated (see `sampleTideCurve`) and is an approximation.
 
-The rating weights in `SCORING` are a judgement call, not a fitted model.
+## The rating
+
+`SCORING` holds every weight, and `RATING_SCALE` holds the two reference days
+the 0-5 rating is stretched between. Both are judgement calls, not a fitted
+model, but the scale is calibrated so real days actually spread across it: about
+3% one star, 20% two, 41% three, 27% four and 9% five, measured over 1825
+day/location forecasts.
+
+Windows outside `SCORING.fishableHours` (6 AM to 10 PM) are discounted to
+`offHoursWeight`, because a major period at 1 AM is real astronomy that almost
+nobody acts on. The "include sleeping hours" toggle turns that off, which is why
+there are two entries in `RATING_SCALE`: the two modes have genuinely different
+ceilings, and sharing one scale would push every unrestricted day to five stars.
+
 Solunar theory has a plausible physical basis but its sharp "best window" claims
-are folk science — the file says so, and so does the app.
+are folk science — the code says so, and so does the app.

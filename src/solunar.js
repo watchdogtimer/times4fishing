@@ -66,23 +66,80 @@ export const SCORING = {
    */
   maxPhaseBonus: 0.3,
 
+  /**
+   * The hours you'd realistically be on the water, in local time.
+   *
+   * A major period at 1 AM is real astronomy, but almost nobody fishes it, so
+   * letting it drive a day's rating makes the calendar useless for planning.
+   */
+  fishableHours: { from: 6, to: 22 },
+
+  /**
+   * What a window outside those hours still counts for, as a fraction.
+   *
+   * Not zero: night fishing is a real thing and the window is still shown and
+   * still labelled. It just shouldn't decide whether Saturday beats Sunday.
+   * The "include sleeping hours" toggle raises this to 1, which turns the
+   * discount off entirely.
+   */
+  offHoursWeight: 0.2,
+
   /** Rating scale shown in the UI. */
   maxRating: 5,
 };
 
 /**
- * The best score a single day could possibly reach: every window at a full or
- * new moon, each one landing on both a sun event and a tide change. Real days
- * never hit this, which is why 5-star days are rare rather than routine.
+ * The two reference days the 0-5 rating is stretched between.
+ *
+ * These have to describe days that actually occur. An earlier version divided
+ * by the theoretical maximum — all four windows at a full moon, each catching
+ * both a sun event and a tide — which is unreachable: there are only two sun
+ * events in a day, so at most two windows can ever take that bonus. Real days
+ * scored between 34% and 79% of that ceiling, so every rating collapsed into
+ * 2, 3 or 4, and 82% of days came out as exactly 3. The calendar could not
+ * show you which day was better because the number barely moved.
+ *
+ * There are two scales because the two modes have genuinely different ceilings.
+ * With the off-hours discount on, what separates a good day from a bad one is
+ * mostly *when* the periods fall; with it off, that variable is gone and only
+ * the moon phase and the sun/tide bonuses are left. Sharing one scale would
+ * push every unrestricted day to five stars.
+ *
+ * Both are derived from SCORING, so re-weighting the model re-calibrates them.
  */
-const MAX_DAILY_SCORE = [MAJOR, MAJOR, MINOR, MINOR].reduce(
-  (total, kind) =>
-    total +
-    SCORING.baseScore[kind] * (1 + SCORING.maxPhaseBonus) +
-    SCORING.sunBonus[kind] +
-    SCORING.tideBonus[kind],
-  0,
-);
+const RATING_SCALE = {
+  /**
+   * Off-hours discounted (the default).
+   *
+   * Quiet: one major period at an hour you'd fish, everything else in the
+   * middle of the night. Excellent: a full or new moon with all four periods
+   * falling in fishable hours.
+   */
+  fishableHours: {
+    quiet:
+      SCORING.baseScore[MAJOR] +
+      (SCORING.baseScore[MAJOR] + SCORING.baseScore[MINOR]) * SCORING.offHoursWeight,
+    excellent: fullMoonDayScore(),
+  },
+
+  /**
+   * Sleeping hours included, so every window counts in full.
+   *
+   * Quiet: three plain periods at a quarter moon, which is the worst the model
+   * produces once time of day stops mattering. Excellent: a full or new moon
+   * with one major period landing on both a sun event and a tide change.
+   */
+  allHours: {
+    quiet: 2 * SCORING.baseScore[MAJOR] + SCORING.baseScore[MINOR],
+    excellent: fullMoonDayScore() + SCORING.sunBonus[MAJOR] + SCORING.tideBonus[MAJOR],
+  },
+};
+
+/** All four periods at a full or new moon, with no sun or tide bonuses. */
+function fullMoonDayScore() {
+  const phase = 1 + SCORING.maxPhaseBonus;
+  return 2 * SCORING.baseScore[MAJOR] * phase + 2 * SCORING.baseScore[MINOR] * phase;
+}
 
 /**
  * @typedef {object} TideEvent
@@ -102,7 +159,9 @@ const MAX_DAILY_SCORE = [MAJOR, MAJOR, MINOR, MINOR].reduce(
  * @property {boolean} prime     Overlaps a sun event or a tide change.
  * @property {'sunrise'|'sunset'|null} sunEvent Which sun event, if any.
  * @property {TideEvent|null} tideEvent
- * @property {number} score
+ * @property {number} fishableFraction How much of the window falls in fishable
+ *   hours, 0 to 1. Views use it to dim the ones you'd have to set an alarm for.
+ * @property {number} score Already weighted by `fishableFraction`.
  * @property {boolean} isBest    The day's highest-scoring window. Exactly one
  *   window per day has this, so it's safe to drive the UI's "go here" styling.
  */
@@ -118,6 +177,7 @@ const MAX_DAILY_SCORE = [MAJOR, MAJOR, MINOR, MINOR].reduce(
  * @property {number|null} moonUnderfoot Lower transit — moon at its lowest, below the horizon.
  * @property {{illuminatedFraction: number, name: string}} phase
  * @property {FishingWindow[]} windows Sorted by start time.
+ * @property {number} score  Sum of the window scores, before scaling.
  * @property {number} rating 0-5.
  * @property {TideEvent[]} tides
  */
@@ -130,9 +190,17 @@ const MAX_DAILY_SCORE = [MAJOR, MAJOR, MINOR, MINOR].reduce(
  * @param {number} options.latitude Degrees, north positive.
  * @param {number} options.longitude Degrees, east positive.
  * @param {TideEvent[]} [options.tides] That day's high/low predictions, if we have them.
+ * @param {boolean} [options.includeSleepingHours] Count windows at any hour in
+ *   full, instead of discounting the ones outside SCORING.fishableHours.
  * @returns {DayForecast}
  */
-export function computeDayForecast({ date, latitude, longitude, tides = [] }) {
+export function computeDayForecast({
+  date,
+  latitude,
+  longitude,
+  tides = [],
+  includeSleepingHours = false,
+}) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const dayOfMonth = date.getDate();
@@ -164,7 +232,8 @@ export function computeDayForecast({ date, latitude, longitude, tides = [] }) {
   // Sample the phase at local midday, the middle of the day we're rating.
   const phase = moonPhase(toEpochDays(year, month, dayOfMonth, 12) + utcOffsetDays);
 
-  const context = { sunrise, sunset, tides, phase };
+  const offHoursWeight = includeSleepingHours ? 1 : SCORING.offHoursWeight;
+  const context = { sunrise, sunset, tides, phase, offHoursWeight };
   const windows = [
     buildWindow('moonOverhead', moonOverhead, context),
     buildWindow('moonUnderfoot', moonUnderfoot, context),
@@ -176,6 +245,8 @@ export function computeDayForecast({ date, latitude, longitude, tides = [] }) {
 
   markBestWindow(windows);
 
+  const dailyScore = windows.reduce((total, window) => total + window.score, 0);
+
   return {
     date,
     sunrise,
@@ -186,7 +257,8 @@ export function computeDayForecast({ date, latitude, longitude, tides = [] }) {
     moonUnderfoot,
     phase,
     windows,
-    rating: toRating(windows),
+    score: dailyScore,
+    rating: toRating(dailyScore, includeSleepingHours),
     tides,
   };
 }
@@ -197,7 +269,7 @@ export function computeDayForecast({ date, latitude, longitude, tides = [] }) {
  * @param {keyof WINDOW_SOURCES} source
  * @returns {FishingWindow|null} Null when the moment doesn't occur that day.
  */
-function buildWindow(source, center, { sunrise, sunset, tides, phase }) {
+function buildWindow(source, center, { sunrise, sunset, tides, phase, offHoursWeight }) {
   if (center === null) return null;
 
   const { kind, label } = WINDOW_SOURCES[source];
@@ -216,17 +288,22 @@ function buildWindow(source, center, { sunrise, sunset, tides, phase }) {
   if (sunEvent) score += SCORING.sunBonus[kind];
   if (tideEvent) score += SCORING.tideBonus[kind];
 
+  const start = addHours(center, -halfSpan);
+  const end = addHours(center, halfSpan);
+  const fishableFraction = fractionInFishableHours(start, end);
+
   return {
     source,
     label,
     kind,
     center,
-    start: addHours(center, -halfSpan),
-    end: addHours(center, halfSpan),
+    start,
+    end,
     prime: sunEvent !== null || tideEvent !== null,
     sunEvent,
     tideEvent,
-    score,
+    fishableFraction,
+    score: score * fishableWeight(fishableFraction, offHoursWeight),
     isBest: false,
   };
 }
@@ -247,6 +324,34 @@ function markBestWindow(windows) {
 }
 
 /**
+ * How much a window counts, given how much of it lands in fishable hours.
+ * Fully inside scores in full; fully outside keeps `offHoursWeight`.
+ */
+function fishableWeight(fishableFraction, offHoursWeight) {
+  return offHoursWeight + (1 - offHoursWeight) * fishableFraction;
+}
+
+/**
+ * The fraction of a window that falls inside SCORING.fishableHours.
+ *
+ * The window may straddle midnight, so it's split into non-wrapping pieces
+ * first and each piece intersected with the fishable span.
+ */
+function fractionInFishableHours(start, end) {
+  const { from, to } = SCORING.fishableHours;
+  const pieces = end >= start ? [[start, end]] : [[start, 24], [0, end]];
+
+  const total = pieces.reduce((sum, [a, b]) => sum + (b - a), 0);
+  if (total <= 0) return 0;
+
+  const inside = pieces.reduce(
+    (sum, [a, b]) => sum + Math.max(0, Math.min(b, to) - Math.max(a, from)),
+    0,
+  );
+  return inside / total;
+}
+
+/**
  * Phase weighting: 1.0 at the quarters, peaking at new and full moon.
  * `2·illumination - 1` maps the 0-1 illuminated fraction onto -1..+1, so its
  * absolute value is "how far from half-lit we are".
@@ -257,9 +362,12 @@ function phaseMultiplier(illuminatedFraction) {
 }
 
 /** Collapse a day's window scores into the 0-5 rating shown on the calendar. */
-function toRating(windows) {
-  const dailyScore = windows.reduce((total, window) => total + window.score, 0);
-  const scaled = Math.round((dailyScore / MAX_DAILY_SCORE) * SCORING.maxRating);
+function toRating(dailyScore, includeSleepingHours) {
+  const { quiet, excellent } = includeSleepingHours
+    ? RATING_SCALE.allHours
+    : RATING_SCALE.fishableHours;
+  const fraction = (dailyScore - quiet) / (excellent - quiet);
+  const scaled = Math.round(fraction * SCORING.maxRating);
   return Math.max(0, Math.min(SCORING.maxRating, scaled));
 }
 

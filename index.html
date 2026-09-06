@@ -36,14 +36,21 @@
     </div>
     <button id="findStation">Find nearest station</button>
     <button id="recalc">Update</button>
+    <label class="toggle" for="includeSleeping">
+      <input id="includeSleeping" type="checkbox">
+      <span>Include sleeping hours<em>Off: only 6 AM – 10 PM counts toward a day's rating</em></span>
+    </label>
     <div class="place" id="place">San Diego, CA (default)</div>
     <div class="tide-status" id="tideStatus">No tide station set — moon &amp; sun windows only.</div>
   </div>
 
   <div class="legend">
-    <span><i class="dot prime"></i> Prime — a window that also lands on sunrise, sunset, or a tide change</span>
-    <span><i class="dot major"></i> Major period — moon overhead or underfoot, 2 hours</span>
-    <span><i class="dot minor"></i> Minor period — moonrise or moonset, 1 hour</span>
+    <span>Each day is rated out of five:</span>
+    <span><i class="dot prime"></i> Excellent</span>
+    <span><i class="dot major"></i> Good</span>
+    <span><i class="dot minor"></i> Fair</span>
+    <span><i class="dot quiet"></i> Quiet</span>
+    <span class="legend-note">The time on each day is when its best window starts.</span>
   </div>
 
   <div class="pagebar">
@@ -68,6 +75,7 @@
       <p>Major periods outscore minor ones, and a prime minor can still rank below a plain major, so <b>Prime doesn't mean best</b>. On a day's chart the single highest-scoring window is the gold one, marked <b>Best</b>.</p>
       <p><b>Tide times</b> come from NOAA's free CO-OPS API for the station you set, so they're real predictions, not estimates — but that only covers stations in NOAA's network (mainly the US and territories). Elsewhere you'd need a different tide data source.</p>
       <p><b>The tide curve</b> on each day is drawn between NOAA's published high and low waters by fitting a half cosine across each half-cycle. The peaks and troughs are exact; the shape in between is a very good approximation, but it isn't NOAA's own six-minute prediction. Don't plan a bar crossing by it.</p>
+      <p><b>Windows outside 6 AM to 10 PM are discounted</b> when rating a day. The astronomy doesn't care what time it is, but you probably do, so a major period at 1 AM still gets listed and charted while counting for a fraction of a daytime one. That's why the best window shown on a calendar cell is nearly always at a civilised hour.</p>
       <p>Solunar theory has a real physical basis (lunar gravity drives tides, and moving water is a well-documented feeding trigger) but the specific claim of sharp 1–2 hour "best window" spikes is folk-science in origin, not a peer-reviewed model — treat the rating as one input, not gospel. Weather, pressure, and species behavior matter too and aren't modeled here.</p>
     </div>
   </details>
