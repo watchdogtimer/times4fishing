@@ -82,5 +82,11 @@ nobody acts on. The "include sleeping hours" toggle turns that off, which is why
 there are two entries in `RATING_SCALE`: the two modes have genuinely different
 ceilings, and sharing one scale would push every unrestricted day to five stars.
 
+Windows carry a `rank` (1 is the day's best) alongside both an `intrinsicScore`
+and the time-discounted `score` the ranking actually uses. The two disagree
+about which window is strongest on 40% of days, which is why there is exactly
+one ranking in the UI — the practical one — and `strongestOffHoursWindow()`
+exists to call out the other case in words instead of contradicting it.
+
 Solunar theory has a plausible physical basis but its sharp "best window" claims
 are folk science — the code says so, and so does the app.

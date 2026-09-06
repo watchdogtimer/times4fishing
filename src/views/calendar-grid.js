@@ -6,8 +6,8 @@
  * grid starts on a Sunday and ends on a Saturday, but they're dimmed and inert.
  */
 
-import { bestWindow } from '../solunar.js';
-import { formatClockTime, isSameDay } from '../time.js';
+import { bestWindow, secondBestWindow } from '../solunar.js';
+import { formatClockTime, formatClockTimeCompact, isSameDay } from '../time.js';
 
 const DAYS_PER_WEEK = 7;
 const MAX_RATING = 5;
@@ -72,6 +72,7 @@ function buildOutOfRangeCell(date) {
 
 function buildDayCell(date, today, forecast, onSelectDay) {
   const best = bestWindow(forecast);
+  const second = secondBestWindow(forecast);
   const tier = tierFor(forecast.rating);
 
   // A real button so it's keyboard reachable and announced as clickable.
@@ -82,18 +83,32 @@ function buildDayCell(date, today, forecast, onSelectDay) {
     'aria-label',
     `${date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}: ` +
       `${tier.name}, ${forecast.rating} out of ${MAX_RATING}` +
-      `${best ? `. Best window from ${formatClockTime(best.start)}` : ''}`,
+      `${best ? `. Best window from ${formatClockTime(best.start)}` : ''}` +
+      `${second ? `, second best from ${formatClockTime(second.start)}` : ''}`,
   );
 
+  // Two times rather than one: the best window often isn't the one that fits
+  // your day, and the runner-up is a real alternative about a third of the time.
   cell.innerHTML = `
     <div class="num">${date.getDate()}</div>
     <div class="rating" title="${tier.name} — ${forecast.rating}/${MAX_RATING}">${renderDots(
       forecast.rating,
     )}</div>
-    <div class="bestline">${best ? formatClockTime(best.start) : '—'}</div>`;
+    <div class="times">
+      <div class="best">${best ? renderTime(best.start) : '—'}</div>
+      ${second ? `<div class="second"><span class="or">or </span>${renderTime(second.start)}</div>` : ''}
+    </div>`;
 
   cell.addEventListener('click', () => onSelectDay(forecast, cell));
   return cell;
+}
+
+/** Both spellings of a time; the stylesheet shows whichever the column can fit. */
+function renderTime(localHours) {
+  return (
+    `<span class="full">${formatClockTime(localHours)}</span>` +
+    `<span class="compact">${formatClockTimeCompact(localHours)}</span>`
+  );
 }
 
 /** The rating as filled and empty dots, countable at a glance across the grid. */

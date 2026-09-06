@@ -3,6 +3,7 @@
  * moon times, the ranked fishing windows, and the day's tide table.
  */
 
+import { strongestOffHoursWindow } from '../solunar.js';
 import { formatClockTime } from '../time.js';
 import { renderTideChart } from './tide-chart.js';
 
@@ -28,9 +29,9 @@ export function renderDayDetail({ container, forecast, tideEvents }) {
     <div class="chart-panel">
       ${renderTideChart(forecast, tideEvents, new Date())}
       <p class="chart-caption">
-        Tide height through the day. Shaded bands are fishing windows, and the gold one is
-        the day's best. Wider bands are major periods (2 hours), narrow ones minor (1 hour).
-        The lighter background is daylight.
+        Tide height through the day. Shaded bands are fishing windows: gold is the day's
+        best, the brighter green is the runner-up. Wider bands are major periods (2 hours),
+        narrow ones minor (1 hour). The lighter background is daylight.
       </p>
     </div>
 
@@ -42,6 +43,7 @@ export function renderDayDetail({ container, forecast, tideEvents }) {
       <section class="windows">
         <h3>Best windows today</h3>
         ${renderWindows(forecast.windows)}
+        ${renderOffHoursNote(forecast)}
       </section>
       <section class="tides">
         <h3>Tides</h3>
@@ -83,15 +85,36 @@ function renderWindows(windows) {
         const kind = window.tideEvent.type === 'H' ? 'high' : 'low';
         notes.push(`near ${kind} tide (${window.tideEvent.height.toFixed(1)} ft)`);
       }
+      const rankTag = { 1: 'Best', 2: '2nd best' }[window.rank];
+      const rankClass = { 1: ' best', 2: ' second' }[window.rank] ?? '';
       return `
-        <div class="win-row${window.isBest ? ' best' : ''}">
+        <div class="win-row${rankClass}">
           <span class="tag">${window.kind}</span>
           <span class="time">${formatClockTime(window.start)} – ${formatClockTime(window.end)}</span>
-          ${window.isBest ? '<span class="best-tag">Best</span>' : ''}
+          ${rankTag ? `<span class="rank-tag">${rankTag}</span>` : ''}
           <span class="note">${notes.join(' · ')}</span>
         </div>`;
     })
     .join('');
+}
+
+/**
+ * Call out a window that beats the day's best on solunar strength but was
+ * ranked down for falling in the small hours.
+ *
+ * The ranking favours windows you'd actually fish, which is right for choosing
+ * between days but would otherwise hide a genuinely strong period at 2 AM.
+ * Rather than bury it, say so and let the angler decide.
+ */
+function renderOffHoursNote(forecast) {
+  const window = strongestOffHoursWindow(forecast);
+  if (!window) return '';
+
+  return `
+    <p class="off-hours-note">
+      Strongest overall is <b>${formatClockTime(window.start)}</b>
+      (${window.label.toLowerCase()}), outside fishable hours.
+    </p>`;
 }
 
 function renderTideTable(tides) {

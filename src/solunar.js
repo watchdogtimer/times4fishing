@@ -161,9 +161,13 @@ function fullMoonDayScore() {
  * @property {TideEvent|null} tideEvent
  * @property {number} fishableFraction How much of the window falls in fishable
  *   hours, 0 to 1. Views use it to dim the ones you'd have to set an alarm for.
- * @property {number} score Already weighted by `fishableFraction`.
- * @property {boolean} isBest    The day's highest-scoring window. Exactly one
- *   window per day has this, so it's safe to drive the UI's "go here" styling.
+ * @property {number} intrinsicScore Solunar strength on its own merits, before
+ *   the time-of-day discount. Only useful for spotting a strong window that the
+ *   discount has pushed down the ranking.
+ * @property {number} score `intrinsicScore` weighted by `fishableFraction`.
+ *   This is what the ranking and the day's rating use.
+ * @property {number} rank 1 for the day's best window, 2 for the next, and so
+ *   on. Unique within a day, so it's safe to drive the UI's styling.
  */
 
 /**
@@ -243,7 +247,7 @@ export function computeDayForecast({
     .filter(Boolean)
     .sort((a, b) => a.start - b.start);
 
-  markBestWindow(windows);
+  rankWindows(windows);
 
   const dailyScore = windows.reduce((total, window) => total + window.score, 0);
 
@@ -303,24 +307,26 @@ function buildWindow(source, center, { sunrise, sunset, tides, phase, offHoursWe
     sunEvent,
     tideEvent,
     fishableFraction,
+    intrinsicScore: score,
     score: score * fishableWeight(fishableFraction, offHoursWeight),
-    isBest: false,
+    rank: 0,
   };
 }
 
 /**
- * Flag the day's highest-scoring window.
+ * Number the windows from best to worst.
  *
  * Ties are common — the two major periods often score identically — so the
  * earliest wins, which is deterministic and puts the marker on the one you can
- * still get to. `windows` must already be sorted by start time.
+ * still get to. `windows` must already be sorted by start time for that
+ * tie-break to hold.
  */
-function markBestWindow(windows) {
-  let best = null;
-  for (const window of windows) {
-    if (best === null || window.score > best.score) best = window;
-  }
-  if (best) best.isBest = true;
+function rankWindows(windows) {
+  [...windows]
+    .sort((a, b) => b.score - a.score)
+    .forEach((window, index) => {
+      window.rank = index + 1;
+    });
 }
 
 /**
@@ -373,5 +379,44 @@ function toRating(dailyScore, includeSleepingHours) {
 
 /** The day's highest-scoring window, or null if the day has none. */
 export function bestWindow(forecast) {
-  return forecast.windows.find((window) => window.isBest) ?? null;
+  return windowByRank(forecast, 1);
+}
+
+/**
+ * The day's runner-up, for when the best window doesn't suit.
+ *
+ * Worth surfacing: on 29% of days it scores within 15% of the best, so it's a
+ * real alternative rather than a consolation prize.
+ */
+export function secondBestWindow(forecast) {
+  return windowByRank(forecast, 2);
+}
+
+/** @returns {FishingWindow|null} */
+function windowByRank(forecast, rank) {
+  return forecast.windows.find((window) => window.rank === rank) ?? null;
+}
+
+/**
+ * A window that would top the day on solunar strength alone, but got ranked
+ * down because it falls in the small hours. Null when there isn't one.
+ *
+ * The ranking deliberately favours windows you'd actually fish, which means a
+ * genuinely strong 2 AM period can end up buried. Rather than quietly demote
+ * it, the detail view calls it out so the choice is yours. Returns null when
+ * the sleeping-hours discount is off, since then the best window already is
+ * the strongest one.
+ */
+export function strongestOffHoursWindow(forecast) {
+  const best = bestWindow(forecast);
+  if (best === null) return null;
+
+  return (
+    forecast.windows
+      .filter(
+        (window) =>
+          window.fishableFraction < 0.5 && window.intrinsicScore > best.intrinsicScore,
+      )
+      .sort((a, b) => b.intrinsicScore - a.intrinsicScore)[0] ?? null
+  );
 }

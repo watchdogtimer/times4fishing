@@ -96,13 +96,15 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
 }
 .weekdays div{text-align:center;}
 
-.grid{ display:grid; grid-template-columns: repeat(7,1fr); gap:1px; background: var(--line); border:1px solid var(--line); }
+.grid{ display:grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap:1px; background: var(--line); border:1px solid var(--line); }
 .cell{
-  background: var(--panel); min-height: 92px; padding: 8px 8px 10px;
+  background: var(--panel); min-height: 98px; padding: 8px 8px 10px;
   cursor:pointer; position:relative; transition: background .15s ease;
   /* Cells are <button> elements for keyboard access; undo the default chrome. */
-  border:0; margin:0; display:block; width:100%; text-align:left;
+  border:0; margin:0; width:100%; text-align:left;
   font:inherit; color:inherit; appearance:none;
+  /* Column layout so the times sit on the baseline however many lines they run to. */
+  display:flex; flex-direction:column;
 }
 .cell:focus-visible{ outline:2px solid var(--brass); outline-offset:-2px; }
 .cell:hover{ background: var(--panel-2); }
@@ -111,11 +113,30 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
 .cell.selected{ outline: 1px solid var(--brass); outline-offset:-1px; background:var(--panel-2); }
 .cell.today .num{ color: var(--brass); }
 .cell .num{ font-family:'Fraunces', serif; font-size:16px; font-weight:500; }
-.cell .bestline{ position:absolute; left:8px; bottom:8px; font-size:11px; color: var(--foam-dim); line-height:1.35; }
+.cell .times{ margin-top:auto; line-height:1.3; white-space:nowrap; }
+.cell .times .compact{ display:none; }
+.cell .times .best{ font-size:11px; color: var(--foam-dim); }
+.cell .times .second{ font-size:10.5px; color: rgba(228,239,236,0.34); }
+
+/* On a phone the columns are ~50px, so the cells shed everything optional:
+   the "or" prefix, some padding, and a little type size. */
+@media (max-width:700px){
+  .cell{ min-height:86px; padding:6px 5px 8px; }
+  .cell .num{ font-size:14px; }
+  .cell .rating{ gap:2px; margin:5px 0 7px; }
+  .cell .rating i{ width:5px; height:5px; }
+  .cell .times{ font-size:10px; }
+  .cell .times .best{ font-size:10px; }
+  .cell .times .second{ font-size:10px; }
+  .cell .times .second .or{ display:none; }
+  .cell .times .full{ display:none; }
+  .cell .times .compact{ display:inline; }
+  .weekdays{ font-size:10px; }
+}
 
 /* Rating dots. Colour and count both encode the rating, so the ranking still
    reads without relying on colour. */
-.cell .rating{ display:flex; gap:3px; margin-top:8px; }
+.cell .rating{ display:flex; gap:3px; margin:7px 0 9px; }
 .cell .rating i{ width:7px; height:7px; border-radius:50%; display:block; }
 .cell .rating i.off{ background: rgba(228,239,236,0.13); }
 .cell.excellent .rating i.on{ background: var(--brass); }
@@ -137,8 +158,14 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
 .win-row{ display:flex; align-items:center; gap:10px; padding: 8px 0; border-bottom:1px solid var(--line); font-size:13.5px; flex-wrap:wrap; }
 .win-row .tag{ font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; padding: 2px 6px; border:1px solid var(--line-strong); color:var(--foam-dim); }
 .win-row.best .tag{ border-color: var(--brass); color: var(--brass); }
-.win-row .best-tag{ font-size:10.5px; text-transform:uppercase; letter-spacing:.03em;
-  padding:2px 6px; background:var(--brass); color:var(--ink); font-weight:600; }
+.win-row.second .tag{ border-color: var(--kelp); color: var(--kelp); }
+.win-row .rank-tag{ font-size:10.5px; text-transform:uppercase; letter-spacing:.03em;
+  padding:2px 6px; font-weight:600; }
+.win-row.best .rank-tag{ background:var(--brass); color:var(--ink); }
+.win-row.second .rank-tag{ border:1px solid var(--kelp); color:var(--kelp); }
+.off-hours-note{ margin:12px 0 0; font-size:12px; color:var(--foam-dim);
+  border-left:2px solid var(--tide-low); padding-left:9px; line-height:1.45; }
+.off-hours-note b{ color:var(--foam); font-weight:500; }
 .win-row .time{ font-family:'Fraunces', serif; font-weight:500; min-width: 128px; }
 .win-row .note{ font-size:12px; color:var(--foam-dim); }
 .tide-row{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
@@ -185,6 +212,7 @@ details.about code{ background: var(--panel-2); padding:1px 5px; font-size:12px;
 .chart-window-label{ fill: var(--foam-dim); font-size:9px; font-family:'Work Sans',sans-serif;
   letter-spacing:.06em; }
 .chart-window-label.best{ fill: var(--brass); font-weight:600; }
+.chart-window-label.second{ fill: var(--kelp); font-weight:600; }
 .chart-now{ stroke: var(--foam); stroke-width:1.5; opacity:0.7; }
 .chart-now-label{ fill: var(--foam); font-size:9.5px; font-family:'Work Sans',sans-serif;
   text-transform:uppercase; letter-spacing:.04em; opacity:0.7; }

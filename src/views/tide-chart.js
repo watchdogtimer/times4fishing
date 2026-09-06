@@ -47,7 +47,7 @@ const PLACEHOLDER_HEIGHT_RANGE = { min: 0, max: 1 };
  * bonus-carrying minor period scores *lower* than a plain major, so the eye was
  * being pulled to the wrong band about a fifth of the time.
  */
-const BAND_PEAK_OPACITY = { best: 0.32, [MAJOR]: 0.17, [MINOR]: 0.11 };
+const BAND_PEAK_OPACITY = { best: 0.32, second: 0.24, [MAJOR]: 0.17, [MINOR]: 0.11 };
 
 /**
  * Opacity at the edge of a band, as a fraction of its peak.
@@ -164,10 +164,9 @@ function renderFishingWindows({ windows }) {
   const gradients = [];
 
   windows.forEach((window, windowIndex) => {
-    const peakOpacity = window.isBest
-      ? BAND_PEAK_OPACITY.best
-      : BAND_PEAK_OPACITY[window.kind];
-    const color = window.isBest ? 'var(--brass)' : 'var(--kelp)';
+    const peakOpacity =
+      BAND_PEAK_OPACITY[window.rank === 1 ? 'best' : window.rank === 2 ? 'second' : window.kind];
+    const color = window.rank === 1 ? 'var(--brass)' : 'var(--kelp)';
     const spanHours = hoursBetween(window.start, window.end);
 
     splitAtMidnight(window.start, window.end).forEach(([from, to], partIndex) => {
@@ -225,14 +224,17 @@ function bandGradient(id, color, peakOpacity, fromFraction, toFraction) {
 function renderWindowCaption(window) {
   const x = xForHour(window.center);
   const anchor = labelAnchorFor(x);
-  const name = window.label.toUpperCase();
+  const rankName = { 1: 'BEST', 2: '2ND BEST' }[window.rank];
+  const rankClass = { 1: ' best', 2: ' second' }[window.rank] ?? '';
 
-  const best = window.isBest
-    ? `<text class="chart-window-label best" x="${x}" y="${PLOT.top - 20}" text-anchor="${anchor}">BEST</text>`
+  const rankLine = rankName
+    ? `<text class="chart-window-label${rankClass}" x="${x}" y="${
+        PLOT.top - 20
+      }" text-anchor="${anchor}">${rankName}</text>`
     : '';
-  return `${best}<text class="chart-window-label${
-    window.isBest ? ' best' : ''
-  }" x="${x}" y="${PLOT.top - 8}" text-anchor="${anchor}">${name}</text>`;
+  return `${rankLine}<text class="chart-window-label${rankClass}" x="${x}" y="${
+    PLOT.top - 8
+  }" text-anchor="${anchor}">${window.label.toUpperCase()}</text>`;
 }
 
 /** Tooltip text: here the reason is worth spelling out, since there's room. */
@@ -386,7 +388,7 @@ function describeChart(forecast, hasTideData) {
   const tidePart = hasTideData
     ? `${forecast.tides.length} tide changes`
     : 'no tide data for this location';
-  const best = forecast.windows.find((window) => window.isBest);
+  const best = forecast.windows.find((window) => window.rank === 1);
   const bestPart = best
     ? ` Best window: ${best.label.toLowerCase()}, ${formatClockTime(best.start)} to ${formatClockTime(best.end)}.`
     : '';

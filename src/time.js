@@ -46,6 +46,19 @@ export function formatClockTime(localHours) {
   return `${hour12}:${String(minute).padStart(2, '0')} ${meridiem}`;
 }
 
+/**
+ * A shorter clock time for tight spaces: "7:53a", "12:59p".
+ *
+ * The calendar grid is seven columns wide, which leaves about 37px per cell on
+ * a phone — not enough for "12:59 PM" without wrapping. The full format is
+ * still rendered alongside it and CSS picks whichever fits.
+ */
+export function formatClockTimeCompact(localHours) {
+  const full = formatClockTime(localHours);
+  if (full === null) return null;
+  return full.replace(' AM', 'a').replace(' PM', 'p');
+}
+
 /** Shift a local-hours value, wrapping around midnight. Null passes through. */
 export function addHours(localHours, delta) {
   return localHours === null ? null : normalizeHours(localHours + delta);
