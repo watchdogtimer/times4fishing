@@ -117,11 +117,12 @@ describe('profile invariants', () => {
         'id', 'hostnames', 'siteName', 'headline', 'title', 'tagline', 'activity', 'windowNoun',
         'requiresTideStation', 'ratingTiers', 'windowsHeading', 'emptyWindowsNote',
         'chartCaption', 'aboutHtml', 'llmsSummary', 'pathPrefix', 'pageTitleVerb',
-        'locations', 'tableTimeHeading', 'tableDetailHeading',
+        'locations', 'tableTimeHeading', 'tableDetailHeading', 'factsHeading',
       ]) {
         assert.ok(profile[key] !== undefined, `${name} is missing ${key}`);
       }
-      for (const key of ['rateDay', 'leadSentence', 'tableDetail', 'describeWindow']) {
+      for (const key of ['rateDay', 'leadSentence', 'tableDetail', 'describeWindow',
+        'dayFacts', 'moonCaption']) {
         assert.equal(typeof profile[key], 'function', `${name}.${key} should be a function`);
       }
       // Descending, so `find` returns the highest matching tier.

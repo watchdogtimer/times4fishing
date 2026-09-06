@@ -65,8 +65,18 @@ h1{
   letter-spacing: -0.01em;
 }
 header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; }
-.moonlabel{ text-align:right; font-family:'Fraunces', serif; font-size:14px; color: var(--brass); white-space:nowrap; }
-.moonlabel .pct{font-size:26px; display:block; font-weight:600;}
+.moonlabel{
+  display:flex; align-items:center; gap:14px;
+  font-family:'Fraunces', serif; font-size:14px; color: var(--brass); white-space:nowrap;
+}
+.moonlabel .moon-text{ text-align:right; }
+.moonlabel .pct{ font-size:26px; display:block; font-weight:600; }
+.moon-disc{ width:52px; height:52px; flex:none; overflow:visible; }
+/* The unlit disc stays faintly visible so the phase reads as a shape cut out of
+   a whole moon, rather than as a lone sliver floating in the header. */
+.moon-dark{ fill: rgba(228,239,236,0.07); stroke: rgba(228,239,236,0.20); stroke-width:1; }
+.moon-lit{ fill: var(--brass); }
+@media (max-width:520px){ .moon-disc{ width:42px; height:42px; } }
 
 .controls{
   display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end;

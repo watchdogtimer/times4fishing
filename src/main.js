@@ -21,6 +21,7 @@ import { loadSettings, saveSettings } from './core/settings.js';
 import { emptyOutlook, fetchWeatherOutlook } from './core/weather.js';
 import { stationTideStats } from './profiles/tidepooling.js';
 import { renderCalendarGrid } from './views/calendar-grid.js';
+import { renderMoonPhase } from './views/moon-phase.js';
 import { renderDayDetail } from './views/day-detail.js';
 
 /** Which site this is. Decided by hostname, so both run from one deployment. */
@@ -279,7 +280,12 @@ function render() {
   if (isSameDay(start, today)) {
     const { phase } = forecastFor(today);
     const percent = Math.round(phase.illuminatedFraction * 100);
-    elements.moonToday.innerHTML = `${phase.name}<span class="pct">${percent}%</span>`;
+    elements.moonToday.innerHTML = `
+      <div class="moon-text">
+        <span class="moon-caption">${profile.moonCaption(phase)}</span>
+        <span class="pct">${percent}%</span>
+      </div>
+      ${renderMoonPhase(phase, { label: `${phase.name}, ${percent}% illuminated` })}`;
   }
 }
 

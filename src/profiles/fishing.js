@@ -283,6 +283,18 @@ export default {
     { min: 2, name: 'Fair', className: 'fair' },
     { min: 0, name: 'Quiet', className: 'quiet' },
   ],
+  factsHeading: 'Sun & moon',
+  /** The four solunar moments are the model here, so they all earn their row. */
+  dayFacts: (forecast) => [
+    ['Sunrise', forecast.sunrise],
+    ['Sunset', forecast.sunset],
+    ['Moonrise', forecast.moonrise],
+    ['Moonset', forecast.moonset],
+    ['Moon overhead', forecast.moonOverhead],
+    ['Moon underfoot', forecast.moonUnderfoot],
+  ],
+  /** Anglers think in phases, and the phase is a real input to the score. */
+  moonCaption: (phase) => phase.name,
   windowsHeading: 'Best windows today',
   emptyWindowsNote: 'No events computed for this location and date.',
   chartCaption:

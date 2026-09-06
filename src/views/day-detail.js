@@ -26,10 +26,11 @@ export function renderDayDetail({ container, forecast, profile, weather, waterTe
     day: 'numeric',
   });
   const illuminatedPercent = Math.round(forecast.phase.illuminatedFraction * 100);
+  const moonCaption = profile.moonCaption(forecast.phase);
 
   container.innerHTML = `
     <h2>${heading}</h2>
-    <div class="sub">Rating ${forecast.rating} / 5 · ${forecast.phase.name} (${illuminatedPercent}% illuminated)</div>
+    <div class="sub">Rating ${forecast.rating} / 5 · ${moonCaption} (${illuminatedPercent}% illuminated)</div>
     ${renderWeather(weather, waterTempF)}
 
     <div class="chart-panel">
@@ -39,8 +40,8 @@ export function renderDayDetail({ container, forecast, profile, weather, waterTe
 
     <div class="cols3">
       <section>
-        <h3>Sun &amp; moon</h3>
-        ${renderFacts(forecast)}
+        <h3>${profile.factsHeading}</h3>
+        ${renderFacts(profile, forecast)}
       </section>
       <section class="windows">
         <h3>${profile.windowsHeading}</h3>
@@ -81,16 +82,9 @@ function renderWeather(weather, waterTempF) {
   return `<div class="wx-row"><span class="wx-label">Forecast</span>${parts.join(' · ')}</div>`;
 }
 
-function renderFacts(forecast) {
-  const facts = [
-    ['Sunrise', forecast.sunrise],
-    ['Sunset', forecast.sunset],
-    ['Moonrise', forecast.moonrise],
-    ['Moonset', forecast.moonset],
-    ['Moon overhead', forecast.moonOverhead],
-    ['Moon underfoot', forecast.moonUnderfoot],
-  ];
-  return facts
+function renderFacts(profile, forecast) {
+  return profile
+    .dayFacts(forecast)
     .map(
       ([label, hour]) =>
         `<div class="fact"><span>${label}</span><span>${formatClockTime(hour) ?? '—'}</span></div>`,

@@ -22,6 +22,11 @@ import tidepooling from './profiles/tidepooling.js';
  * @property {string} headline     The <h1>, e.g. "Best times for ocean fishing".
  *   Says what the site is for; `siteName` says who it is.
  * @property {string} title        Full <title>.
+ * @property {string} factsHeading Heading over the sun/moon column.
+ * @property {(forecast: object) => [string, number|null][]} dayFacts
+ *   The labelled times worth listing for this activity.
+ * @property {(phase: object) => string} moonCaption
+ *   How to name a moon phase for this audience.
  * @property {string} tagline      One-line description, used in the header and meta.
  * @property {string} activity     Gerund used in generated prose, e.g. "fishing".
  * @property {string} windowNoun   e.g. "fishing window".

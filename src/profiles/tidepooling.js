@@ -342,6 +342,34 @@ export default {
     'Four weeks at a time, ranked by when the tide drops far enough, for long enough, in daylight. No ads, no accounts.',
   activity: 'tidepooling',
   windowNoun: 'tidepooling window',
+  factsHeading: 'Daylight',
+  /**
+   * No moonrise, moonset or transits.
+   *
+   * Those four are the solunar model's moments, and this site doesn't use that
+   * model — the tide curve generates the windows. Listing when the moon is
+   * underfoot to someone deciding whether to walk out onto a reef is noise
+   * dressed as data. Sunrise and sunset stay because daylight is a hard
+   * requirement of the trip.
+   */
+  dayFacts: (forecast) => [
+    ['Sunrise', forecast.sunrise],
+    ['Sunset', forecast.sunset],
+  ],
+  /**
+   * Phase named by what it does to the water, not by its shape.
+   *
+   * "Waning Crescent" asks the reader to know that phase drives tidal range.
+   * "Neap tides" tells them the lows this week are unremarkable, which is the
+   * only reason the moon appears on this site at all.
+   */
+  moonCaption: (phase) => {
+    const extremeness = Math.abs(2 * phase.illuminatedFraction - 1);
+    if (extremeness >= 0.7) return 'Spring tides';
+    if (extremeness <= 0.3) return 'Neap tides';
+    // Heading for a new or full moon means the range is still opening up.
+    return phase.waxing === phase.illuminatedFraction > 0.5 ? 'Tides building' : 'Tides easing';
+  },
   windowsHeading: 'Low-water windows',
   emptyWindowsNote:
     'No low-water window on this day — the tide never drops far enough to be worth the trip.',

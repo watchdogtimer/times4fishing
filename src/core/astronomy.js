@@ -342,7 +342,7 @@ const PHASE_NAMES = [
  * straddles the wrap point at 0.
  *
  * @param {number} epochDays
- * @returns {{illuminatedFraction: number, name: string}}
+ * @returns {{illuminatedFraction: number, name: string, waxing: boolean}}
  */
 export function moonPhase(epochDays) {
   const moon = moonPosition(epochDays);
@@ -358,7 +358,13 @@ export function moonPhase(epochDays) {
   const eighth = cycleFraction * PHASE_NAMES.length;
   const nameIndex = Math.round(eighth) % PHASE_NAMES.length;
 
-  return { illuminatedFraction, name: PHASE_NAMES[nameIndex] };
+  return {
+    illuminatedFraction,
+    name: PHASE_NAMES[nameIndex],
+    // Which limb is lit. Drawing the phase needs this and the fraction alone
+    // can't supply it: at 23% lit, waxing and waning are mirror images.
+    waxing: cycleFraction < 0.5,
+  };
 }
 
 /* ---------------------------------------------------------------- *
