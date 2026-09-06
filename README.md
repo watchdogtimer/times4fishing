@@ -37,15 +37,15 @@ Tide data needs network access to NOAA either way.
 > server spins forever without answering a request. Pointing the state outside
 > the repo breaks the loop.
 
-Both sites run from one tree, so locally you pick between them with a query
-parameter rather than a hosts file:
+Both sites run from one tree. Under `wrangler dev` you pick between them with
+`--host` (see `npm run dev:tidepooling`); under a plain static server, where
+there's no Worker to read the hostname, a query parameter stands in:
 
 ```
 http://localhost:8788/?profile=tidepooling
-http://localhost:8790/spots/san-diego-ca/?profile=tidepooling
 ```
 
-The override is refused on the production hostnames, which matters more than it
+That override is refused on the production hostnames, which matters more than it
 looks: `times4fishing.com/?profile=tidepooling` would otherwise serve one site's
 content under the other's URL, and that's the duplicate-content pattern search
 engines penalise.
@@ -173,10 +173,16 @@ someone might make a safety call from. NDBC buoys are the likely answer.
 
 ```bash
 npm install
-npm test      # 30 tests, no network, ~90ms
-npm run dev   # both sites on localhost:8787
-npm run check # tests + a dry-run deploy, before you push
+npm test                # 39 tests, no network, ~90ms
+npm run dev             # the fishing site on localhost:8787
+npm run dev:tidepooling # the tidepooling site, same port
+npm run check           # tests + a dry-run deploy, before you push
 ```
+
+Two dev scripts rather than one, because `routes` in `wrangler.jsonc` makes
+`wrangler dev` answer as the first route's hostname. That's a feature: `--host`
+exercises the real hostname path, the same code that runs in production, rather
+than a `?profile=` shortcut that only exists in development.
 
 **Run the tests before you push, because pushing is releasing.** Set the deploy
 command in Workers Builds to `npm run deploy`, which runs them first and aborts
@@ -200,6 +206,12 @@ It tests the things that break *silently*:
   zone as the location being tested.
 - **Profile selection**, including the assertion that `?profile=` is refused on
   the production hostnames.
+- **What the rendered pages promise crawlers**: canonical URLs that point at the
+  site's own domain rather than whatever host served them, `noindex` on
+  previews, the answer sentence and the table present without script, and
+  JSON-LD that parses. These mistakes cost you the ranking you built the pages
+  for and you find out weeks later, which is exactly the kind of thing worth
+  pinning.
 
 The fixture and the golden file are committed on purpose. A suite that can fail
 because NOAA is having a bad morning is one people learn to ignore, and this one
@@ -227,9 +239,24 @@ The page cache key carries the deployment version (`version_metadata`), because
 page would sit invisible behind the stale copy until that location's midnight —
 tolerable if releases were rare, quietly maddening when every push is one.
 
-One Worker, two custom domains. It's still named `times4fishing` because that's
-the Worker the live domain is already attached to; renaming it would quietly
-create a second empty one and leave the real site on the old code.
+One Worker, two custom domains, both declared in `wrangler.jsonc` rather than
+clicked into the dashboard — the repo is the record of which domains this Worker
+answers on, and `custom_domain: true` has Cloudflare create the proxied DNS
+record and provision the certificate as part of the deploy.
+
+Only the apex names are bound. `www` has never resolved for either site, and
+binding it would serve identical content on a second hostname for no benefit
+anyone has asked for. The profiles still *recognise* the `www` forms, so if one
+is ever bound it reaches the right site rather than falling back to fishing.
+
+Canonical URLs are built from the profile, never from the request, because the
+Worker also answers on `*.workers.dev` preview URLs — and a preview emitting
+canonicals that point at itself is asking to be indexed in place of the real
+site. Previews additionally get `noindex` and a `Disallow: /` robots.txt.
+
+It's still named `times4fishing` because that's the Worker the live domain is
+already attached to; renaming it would quietly create a second empty one and
+leave the real site on the old code.
 `src/worker.js` picks the profile from the request hostname, rewrites the app shell's `<head>` with `HTMLRewriter` on the
 way out, and renders the location pages itself. Everything else — `style.css`,
 the client modules — is served straight from static assets and never touches the

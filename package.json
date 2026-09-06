@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node --test \"test/**/*.test.js\"",
     "dev": "wrangler dev --persist-to ../.times4-wrangler-state",
+    "dev:tidepooling": "wrangler dev --host times4tidepooling.com --persist-to ../.times4-wrangler-state",
     "check": "npm test && wrangler deploy --dry-run",
     "deploy": "npm test && wrangler deploy",
     "golden": "node scripts/regenerate-golden.js"

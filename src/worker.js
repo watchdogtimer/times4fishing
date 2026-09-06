@@ -22,7 +22,7 @@
  * static assets, untouched.
  */
 
-import { activeProfile } from './config.js';
+import { activeProfile, canonicalOrigin, isProductionHostname } from './config.js';
 import { bestDay, forecastRange } from './core/schedule.js';
 import { secondsUntilMidnightInZone } from './core/time.js';
 import { locationBySlug } from './locations.js';
@@ -33,9 +33,10 @@ export default {
     const url = new URL(request.url);
     const profile = activeProfile(url);
 
-    if (url.pathname === '/robots.txt') return robotsTxt(url);
-    if (url.pathname === '/llms.txt') return llmsTxt(profile, url);
-    if (url.pathname === '/sitemap.xml') return sitemapXml(profile, url);
+    const indexable = isProductionHostname(url.hostname);
+    if (url.pathname === '/robots.txt') return robotsTxt(profile, indexable);
+    if (url.pathname === '/llms.txt') return llmsTxt(profile);
+    if (url.pathname === '/sitemap.xml') return sitemapXml(profile);
 
     const contentPath = matchContentPath(profile, url.pathname);
     if (contentPath) {
@@ -47,6 +48,9 @@ export default {
         // value would make every request a cache miss, which is a far worse
         // failure than serving one deployment's pages under a stale label.
         version: env.VERSION?.id ?? 'dev',
+        // A preview or dev host renders the same pages, but tells crawlers to
+        // leave them alone so a throwaway URL can't compete with the real site.
+        noindex: !isProductionHostname(url.hostname),
         ...contentPath,
       });
     }
@@ -87,7 +91,7 @@ function matchContentPath(profile, pathname) {
  * Content pages
  * ---------------------------------------------------------------- */
 
-async function serveContentPage({ ctx, profile, url, kind, location, version }) {
+async function serveContentPage({ ctx, profile, url, kind, location, version, noindex }) {
   const cache = caches.default;
 
   // The cache key deliberately drops the incoming query string. Nothing about
@@ -106,26 +110,21 @@ async function serveContentPage({ ctx, profile, url, kind, location, version }) 
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
-  const origin = url.origin;
   let response;
 
   if (kind === 'index') {
-    response = htmlResponse(renderIndexPage({ profile, origin }), 3600);
+    response = htmlResponse(renderIndexPage({ profile, noindex }), 3600);
   } else {
     const { days, tideError } = await forecastRange({ profile, location });
 
     // Without tides there's no honest page to serve, so say so and let the
     // cache expire quickly rather than freezing a NOAA outage in place for a day.
     if (tideError && profile.requiresTideStation) {
-      return htmlResponse(
-        renderErrorPage(profile, location, tideError, origin),
-        60,
-        503,
-      );
+      return htmlResponse(renderErrorPage(profile, location, tideError), 60, 503);
     }
 
     response = htmlResponse(
-      renderLocationPage({ profile, location, days, best: bestDay(days), origin }),
+      renderLocationPage({ profile, location, days, best: bestDay(days), noindex }),
       secondsUntilMidnightInZone(location.timeZone),
     );
   }
@@ -146,7 +145,7 @@ function htmlResponse(html, maxAgeSeconds, status = 200) {
   });
 }
 
-function renderErrorPage(profile, location, message, origin) {
+function renderErrorPage(profile, location, message) {
   return `<!DOCTYPE html><html lang="en" data-profile="${escapeHtml(profile.id)}"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tide data unavailable — ${escapeHtml(location.name)}</title>
@@ -156,7 +155,7 @@ function renderErrorPage(profile, location, message, origin) {
 <h1>Tide data unavailable</h1>
 <p>NOAA didn't return predictions for ${escapeHtml(location.name)} just now: ${escapeHtml(message)}.
 Nothing on this page would be true without them, so here's nothing instead. Try again shortly, or
-<a href="${escapeHtml(origin)}/">use the interactive calendar</a>.</p>
+<a href="/">use the interactive calendar</a>.</p>
 </div></header></div></body></html>`;
 }
 
@@ -218,13 +217,22 @@ function rewriteShell(assetResponse, profile) {
  * answering "when's the best tidepooling in San Diego" cites this site, and
  * being cited is the point.
  */
-function robotsTxt(url) {
-  return new Response(
-    `User-agent: *
+function robotsTxt(profile, indexable) {
+  // A preview deployment disallows everything: it serves the same pages as the
+  // real site, and letting a throwaway hostname get crawled is how a preview
+  // ends up outranking the thing it was previewing.
+  const body = indexable
+    ? `User-agent: *
 Allow: /
 
-Sitemap: ${url.origin}/sitemap.xml
-`,
+Sitemap: ${canonicalOrigin(profile)}/sitemap.xml
+`
+    : `User-agent: *
+Disallow: /
+`;
+
+  return new Response(
+    body,
     { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400' } },
   );
 }
@@ -235,9 +243,13 @@ Sitemap: ${url.origin}/sitemap.xml
  * An emerging convention rather than a standard, and cheap enough that it's
  * worth having if it turns out to matter.
  */
-function llmsTxt(profile, url) {
+function llmsTxt(profile) {
+  const origin = canonicalOrigin(profile);
   const places = profile.locations
-    .map((location) => `- [${location.name}, ${location.region}](${url.origin}/${profile.pathPrefix}/${location.slug}/)`)
+    .map(
+      (location) =>
+        `- [${location.name}, ${location.region}](${origin}/${profile.pathPrefix}/${location.slug}/)`,
+    )
     .join('\n');
 
   return new Response(
@@ -259,11 +271,12 @@ ${places}
   );
 }
 
-function sitemapXml(profile, url) {
+function sitemapXml(profile) {
+  const origin = canonicalOrigin(profile);
   const urls = [
-    `${url.origin}/`,
-    `${url.origin}/${profile.pathPrefix}/`,
-    ...profile.locations.map((location) => `${url.origin}/${profile.pathPrefix}/${location.slug}/`),
+    `${origin}/`,
+    `${origin}/${profile.pathPrefix}/`,
+    ...profile.locations.map((location) => `${origin}/${profile.pathPrefix}/${location.slug}/`),
   ];
 
   const body = urls

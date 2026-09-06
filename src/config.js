@@ -30,6 +30,35 @@ import tidepooling from './profiles/tidepooling.js';
 
 export const PROFILES = { fishing, tidepooling };
 
+/** Every hostname a real site answers on. */
+const PRODUCTION_HOSTNAMES = new Set(
+  Object.values(PROFILES).flatMap((profile) => profile.hostnames),
+);
+
+/**
+ * The origin a profile's pages always point at, whatever host served them.
+ *
+ * Canonical URLs must not be built from the request, because the Worker answers
+ * on more than its production hostname: `wrangler versions upload` gives every
+ * preview its own `*.workers.dev` URL, and a preview that emits canonicals
+ * pointing at itself is asking to be indexed in place of the real site. The
+ * first entry in `hostnames` is the site's true home; everything else is an
+ * alias that should defer to it.
+ */
+export function canonicalOrigin(profile) {
+  return `https://${profile.hostnames[0]}`;
+}
+
+/**
+ * Whether a hostname is one of the real sites.
+ *
+ * Anything else — a preview deployment, a local dev server — gets `noindex`, so
+ * a throwaway URL can't end up competing with the site it was testing.
+ */
+export function isProductionHostname(hostname = '') {
+  return PRODUCTION_HOSTNAMES.has(hostname.toLowerCase().replace(/:\d+$/, ''));
+}
+
 /** The profile served on `hostname`, falling back to fishing. */
 export function profileForHostname(hostname = '') {
   const host = hostname.toLowerCase().replace(/:\d+$/, '');
@@ -42,11 +71,6 @@ export function profileForHostname(hostname = '') {
   const byName = Object.values(PROFILES).find((profile) => host.includes(profile.id));
   return byName ?? fishing;
 }
-
-/** Every hostname a real site answers on. */
-const PRODUCTION_HOSTNAMES = new Set(
-  Object.values(PROFILES).flatMap((profile) => profile.hostnames),
-);
 
 /**
  * The profile for a request, honouring a `?profile=` override off production.
@@ -61,7 +85,7 @@ const PRODUCTION_HOSTNAMES = new Set(
  */
 export function activeProfile(location = globalThis.location) {
   const hostname = location?.hostname ?? '';
-  if (!PRODUCTION_HOSTNAMES.has(hostname.toLowerCase())) {
+  if (!isProductionHostname(hostname)) {
     const requested = new URLSearchParams(location?.search ?? '').get('profile');
     if (PROFILES[requested]) return PROFILES[requested];
   }

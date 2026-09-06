@@ -1,15 +1,32 @@
 {
   // Kept as "times4fishing" even though it now serves both sites: this is the
-  // Worker that times4fishing.com is already attached to, and renaming it would
-  // create a second, empty Worker while the live domain kept serving the old
-  // code. The name is an internal identifier, not a claim about scope.
+  // Worker times4fishing.com is already attached to, and renaming it would
+  // create a second, empty Worker while the live domain served the old code.
+  // The name is an internal identifier, not a claim about scope.
   "name": "times4fishing",
   "main": "src/worker.js",
   "compatibility_date": "2026-08-28",
+
   // Exposes this deployment's version id, which goes into the page cache key.
   // Without it a deploy is invisible on any page still inside its cache window,
   // and those windows run to local midnight.
   "version_metadata": { "binding": "VERSION" },
+
+  // Both sites, declared here rather than clicked into the dashboard, so the
+  // repo is the record of which domains this Worker answers on. `custom_domain`
+  // makes Cloudflare create the proxied DNS record and provision the
+  // certificate as part of the deploy.
+  //
+  // Only the apex names. `www` has never resolved for either site, and binding
+  // it would serve identical content on a second hostname — a duplicate-content
+  // surface to manage for no benefit anyone has asked for. The profiles still
+  // *recognise* the www forms, so if one is ever bound it reaches the right
+  // site rather than falling back to fishing.
+  "routes": [
+    { "pattern": "times4fishing.com", "custom_domain": true },
+    { "pattern": "times4tidepooling.com", "custom_domain": true }
+  ],
+
   "assets": {
     "directory": ".",
     "binding": "ASSETS",

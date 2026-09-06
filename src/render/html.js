@@ -20,6 +20,7 @@
  *    place's midnight, which is exactly what makes it cacheable.
  */
 
+import { canonicalOrigin } from '../config.js';
 import { bestWindow } from '../core/day.js';
 import { formatClockTime, toDateKey } from '../core/time.js';
 
@@ -62,7 +63,7 @@ function clock24(hour) {
  * Shares `style.css` with the app, so the two never drift apart visually, and
  * carries no script at all: these pages are documents, not applications.
  */
-export function layout({ profile, title, description, canonical, jsonLd, body }) {
+export function layout({ profile, title, description, canonical, jsonLd, body, noindex }) {
   return `<!DOCTYPE html>
 <html lang="en" data-profile="${escapeHtml(profile.id)}">
 <head>
@@ -71,6 +72,7 @@ export function layout({ profile, title, description, canonical, jsonLd, body })
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
+${noindex ? '<meta name="robots" content="noindex,nofollow">' : ''}
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
@@ -108,11 +110,11 @@ ${body}
  * @param {import('../locations.js').Location} options.location
  * @param {object[]} options.days
  * @param {object|null} options.best
- * @param {string} options.origin
+ * @param {boolean} [options.noindex] Set on anything that isn't the real site.
  */
-export function renderLocationPage({ profile, location, days, best, origin }) {
+export function renderLocationPage({ profile, location, days, best, noindex }) {
   const place = `${location.name}, ${location.region}`;
-  const canonical = `${origin}/${profile.pathPrefix}/${location.slug}/`;
+  const canonical = `${canonicalOrigin(profile)}/${profile.pathPrefix}/${location.slug}/`;
   const title = `${profile.pageTitleVerb} in ${place} — next four weeks`;
   const lead = profile.leadSentence(best, location);
   const range = `${shortDate(days[0].date)} to ${shortDate(days[days.length - 1].date)}`;
@@ -143,6 +145,7 @@ export function renderLocationPage({ profile, location, days, best, origin }) {
     canonical,
     jsonLd: locationJsonLd({ profile, location, days, canonical, lead }),
     body,
+    noindex,
   });
 }
 
@@ -240,8 +243,8 @@ function locationJsonLd({ profile, location, days, canonical, lead }) {
  * ---------------------------------------------------------------- */
 
 /** The list of places, linked. Small, but it's what makes the rest crawlable. */
-export function renderIndexPage({ profile, origin }) {
-  const canonical = `${origin}/${profile.pathPrefix}/`;
+export function renderIndexPage({ profile, noindex }) {
+  const canonical = `${canonicalOrigin(profile)}/${profile.pathPrefix}/`;
   const items = profile.locations
     .map(
       (location) =>
@@ -260,6 +263,7 @@ export function renderIndexPage({ profile, origin }) {
       name: `${profile.pageTitleVerb} by location`,
       url: canonical,
     },
+    noindex,
     body: `
   <header>
     <div>
