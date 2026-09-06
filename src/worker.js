@@ -28,15 +28,54 @@ import { secondsUntilMidnightInZone } from './core/time.js';
 import { locationBySlug } from './locations.js';
 import { escapeHtml, renderIndexPage, renderLocationPage } from './render/html.js';
 
+/* ---------------------------------------------------------------- *
+ * Caching
+ * ---------------------------------------------------------------- */
+
+/**
+ * Whether pages may be cached at all.
+ *
+ * Off by default, and deliberately so while the sites are new. Pushing is
+ * releasing here, and a deploy that takes an hour to become visible costs more
+ * in confusion than the caching saves at this traffic. Set `PAGE_CACHE` to
+ * "on" in wrangler.jsonc once things settle down.
+ *
+ * Anything other than the exact string "on" means off, so a typo or a dropped
+ * variable fails towards "correct but slower" rather than "fast but stale".
+ *
+ * This only governs what the Worker sets. Static assets (style.css, src/*.js)
+ * skip the Worker entirely, and Cloudflare already serves those
+ * `max-age=0, must-revalidate` with an ETag, so they revalidate on every
+ * request and were never the stale ones.
+ */
+export function cachingEnabled(env) {
+  return env?.PAGE_CACHE === 'on';
+}
+
+/**
+ * The `cache-control` for something the Worker produced.
+ *
+ * `s-maxage` is what the edge honours; browsers get a shorter window so a
+ * reader who leaves a tab open overnight isn't stuck on yesterday.
+ *
+ * @param {number} sMaxAgeSeconds Edge lifetime when caching is on.
+ * @param {number} [browserCapSeconds] Upper bound on the browser's own copy.
+ */
+export function cacheControl(env, sMaxAgeSeconds, browserCapSeconds = 900) {
+  if (!cachingEnabled(env)) return 'no-store';
+  const maxAge = Math.min(sMaxAgeSeconds, browserCapSeconds);
+  return `public, max-age=${maxAge}, s-maxage=${sMaxAgeSeconds}`;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const profile = activeProfile(url);
 
     const indexable = isProductionHostname(url.hostname);
-    if (url.pathname === '/robots.txt') return robotsTxt(profile, indexable);
-    if (url.pathname === '/llms.txt') return llmsTxt(profile);
-    if (url.pathname === '/sitemap.xml') return sitemapXml(profile);
+    if (url.pathname === '/robots.txt') return robotsTxt(env, profile, indexable);
+    if (url.pathname === '/llms.txt') return llmsTxt(env, profile);
+    if (url.pathname === '/sitemap.xml') return sitemapXml(env, profile);
 
     const contentPath = matchContentPath(profile, url.pathname);
     if (contentPath) {
@@ -47,6 +86,7 @@ export default {
         // Falls back to a constant rather than something random: a per-request
         // value would make every request a cache miss, which is a far worse
         // failure than serving one deployment's pages under a stale label.
+        env,
         version: env.VERSION?.id ?? 'dev',
         // A preview or dev host renders the same pages, but tells crawlers to
         // leave them alone so a throwaway URL can't compete with the real site.
@@ -57,7 +97,7 @@ export default {
 
     // The app shell: served from assets, with its head rewritten for this site.
     if (url.pathname === '/' || url.pathname === '/index.html') {
-      return rewriteShell(await env.ASSETS.fetch(request), profile);
+      return rewriteShell(await env.ASSETS.fetch(request), profile, env);
     }
 
     return env.ASSETS.fetch(request);
@@ -91,7 +131,8 @@ function matchContentPath(profile, pathname) {
  * Content pages
  * ---------------------------------------------------------------- */
 
-async function serveContentPage({ ctx, profile, url, kind, location, version, noindex }) {
+async function serveContentPage({ ctx, profile, url, kind, location, env, version, noindex }) {
+  const caching = cachingEnabled(env);
   const cache = caches.default;
 
   // The cache key deliberately drops the incoming query string. Nothing about
@@ -107,40 +148,44 @@ async function serveContentPage({ ctx, profile, url, kind, location, version, no
     `${url.origin}${url.pathname}?p=${profile.id}&v=${version}`,
     { method: 'GET' },
   );
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached;
+  // Skipped wholesale when caching is off: `caches.default` outlives a deploy,
+  // so consulting it at all would reintroduce the staleness the switch exists
+  // to remove.
+  if (caching) {
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached;
+  }
 
   let response;
 
   if (kind === 'index') {
-    response = htmlResponse(renderIndexPage({ profile, noindex }), 3600);
+    response = htmlResponse(env, renderIndexPage({ profile, noindex }), 3600);
   } else {
     const { days, tideError } = await forecastRange({ profile, location });
 
     // Without tides there's no honest page to serve, so say so and let the
     // cache expire quickly rather than freezing a NOAA outage in place for a day.
     if (tideError && profile.requiresTideStation) {
-      return htmlResponse(renderErrorPage(profile, location, tideError), 60, 503);
+      return htmlResponse(env, renderErrorPage(profile, location, tideError), 60, 503);
     }
 
     response = htmlResponse(
+      env,
       renderLocationPage({ profile, location, days, best: bestDay(days), noindex }),
       secondsUntilMidnightInZone(location.timeZone),
     );
   }
 
-  ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  if (caching) ctx.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
 }
 
-function htmlResponse(html, maxAgeSeconds, status = 200) {
+function htmlResponse(env, html, maxAgeSeconds, status = 200) {
   return new Response(html, {
     status,
     headers: {
       'content-type': 'text/html; charset=utf-8',
-      // `s-maxage` is what the edge honours; browsers get a shorter window so a
-      // reader who leaves a tab open overnight isn't stuck on yesterday.
-      'cache-control': `public, max-age=${Math.min(maxAgeSeconds, 900)}, s-maxage=${maxAgeSeconds}`,
+      'cache-control': cacheControl(env, maxAgeSeconds),
     },
   });
 }
@@ -170,7 +215,7 @@ Nothing on this page would be true without them, so here's nothing instead. Try 
  * anything with a browser. It's the only path that works for anything without
  * one, which is most of what decides whether the site gets found.
  */
-function rewriteShell(assetResponse, profile) {
+function rewriteShell(assetResponse, profile, env) {
   const response = new HTMLRewriter()
     .on('title', { element: (element) => element.setInnerContent(profile.title) })
     .on('meta[name="description"]', {
@@ -198,9 +243,10 @@ function rewriteShell(assetResponse, profile) {
     })
     .transform(assetResponse);
 
-  // The shell is identical for everyone on a given domain, so it caches hard.
+  // The shell is identical for everyone on a given domain, so it caches hard —
+  // once caching is switched on at all.
   const headers = new Headers(response.headers);
-  headers.set('cache-control', 'public, max-age=300, s-maxage=3600');
+  headers.set('cache-control', cacheControl(env, 3600, 300));
   return new Response(response.body, { status: response.status, headers });
 }
 
@@ -217,7 +263,7 @@ function rewriteShell(assetResponse, profile) {
  * answering "when's the best tidepooling in San Diego" cites this site, and
  * being cited is the point.
  */
-function robotsTxt(profile, indexable) {
+function robotsTxt(env, profile, indexable) {
   // A preview deployment disallows everything: it serves the same pages as the
   // real site, and letting a throwaway hostname get crawled is how a preview
   // ends up outranking the thing it was previewing.
@@ -233,7 +279,7 @@ Disallow: /
 
   return new Response(
     body,
-    { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400' } },
+    { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': cacheControl(env, 86400) } },
   );
 }
 
@@ -243,7 +289,7 @@ Disallow: /
  * An emerging convention rather than a standard, and cheap enough that it's
  * worth having if it turns out to matter.
  */
-function llmsTxt(profile) {
+function llmsTxt(env, profile) {
   const origin = canonicalOrigin(profile);
   const places = profile.locations
     .map(
@@ -267,11 +313,11 @@ formulas and agree with NOAA's solar calculator to within about two minutes.
 
 ${places}
 `,
-    { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400' } },
+    { headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': cacheControl(env, 86400) } },
   );
 }
 
-function sitemapXml(profile) {
+function sitemapXml(env, profile) {
   const origin = canonicalOrigin(profile);
   const urls = [
     `${origin}/`,
@@ -288,6 +334,6 @@ function sitemapXml(profile) {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${body}
 </urlset>`,
-    { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=86400' } },
+    { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': cacheControl(env, 86400) } },
   );
 }

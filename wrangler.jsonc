@@ -12,6 +12,15 @@
   // and those windows run to local midnight.
   "version_metadata": { "binding": "VERSION" },
 
+  // Page caching, off while the sites are still changing daily. Pushing is
+  // releasing, and a deploy that takes an hour to show up costs more in
+  // confusion than the caching saves at this traffic. Flip to "on" when
+  // iteration slows down — see `cachingEnabled` in src/worker.js.
+  //
+  // Only affects what the Worker sets. style.css and src/*.js bypass the
+  // Worker and Cloudflare already serves them must-revalidate with an ETag.
+  "vars": { "PAGE_CACHE": "off" },
+
   // Both sites, declared here rather than clicked into the dashboard, so the
   // repo is the record of which domains this Worker answers on. `custom_domain`
   // makes Cloudflare create the proxied DNS record and provision the
