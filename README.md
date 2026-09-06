@@ -171,8 +171,10 @@ someone might make a safety call from. NDBC buoys are the likely answer.
 
 ## Deployment
 
-One Worker, two custom domains. `src/worker.js` picks the profile from the
-request hostname, rewrites the app shell's `<head>` with `HTMLRewriter` on the
+One Worker, two custom domains. It's still named `times4fishing` because that's
+the Worker the live domain is already attached to; renaming it would quietly
+create a second empty one and leave the real site on the old code.
+`src/worker.js` picks the profile from the request hostname, rewrites the app shell's `<head>` with `HTMLRewriter` on the
 way out, and renders the location pages itself. Everything else — `style.css`,
 the client modules — is served straight from static assets and never touches the
 Worker.

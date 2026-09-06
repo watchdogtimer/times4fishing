@@ -1,5 +1,9 @@
 {
-  "name": "times4",
+  // Kept as "times4fishing" even though it now serves both sites: this is the
+  // Worker that times4fishing.com is already attached to, and renaming it would
+  // create a second, empty Worker while the live domain kept serving the old
+  // code. The name is an internal identifier, not a claim about scope.
+  "name": "times4fishing",
   "main": "src/worker.js",
   "compatibility_date": "2026-08-28",
   "assets": {
