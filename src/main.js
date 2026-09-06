@@ -17,6 +17,7 @@ import {
   sampleTideCurve,
 } from './core/tides.js';
 import { addDays, isSameDay, startOfDay, toDateKey } from './core/time.js';
+import { emptyOutlook, fetchWeatherOutlook } from './core/weather.js';
 import { stationTideStats } from './profiles/tidepooling.js';
 import { renderCalendarGrid } from './views/calendar-grid.js';
 import { renderDayDetail } from './views/day-detail.js';
@@ -63,6 +64,13 @@ const state = {
    * Only the tidepooling profile reads it; fishing ignores it.
    */
   tideStats: null,
+  /**
+   * About a week of NWS weather, keyed by date. Never feeds the rating — the
+   * calendar runs four weeks and the forecast reaches seven days, so scoring it
+   * would judge the first week on different evidence from the rest.
+   * @type {import('./core/weather.js').WeatherOutlook}
+   */
+  weather: emptyOutlook(),
   ...DEFAULT_LOCATION,
 };
 
@@ -139,10 +147,34 @@ async function loadTides(start, end) {
   }
 }
 
+/**
+ * Load the weather overlay for the current location.
+ *
+ * Failure is quiet on purpose. The overlay is a bonus on top of a calendar that
+ * works perfectly well without it, so a bad day at api.weather.gov should cost
+ * you the temperatures and nothing else.
+ */
+async function loadWeather() {
+  try {
+    state.weather = await fetchWeatherOutlook({
+      latitude: state.latitude,
+      longitude: state.longitude,
+      stationId: state.stationId,
+    });
+  } catch {
+    state.weather = emptyOutlook();
+  }
+}
+
 /** Fetch the tides for the current page, then redraw. */
 async function refresh() {
   const { start, end } = currentPageRange();
   await loadTides(start, end);
+  render();
+
+  // The weather is slower and optional, so the calendar goes up without it and
+  // gains the overlay a moment later rather than waiting on two round trips.
+  await loadWeather();
   render();
 }
 
@@ -181,6 +213,7 @@ function render() {
     forecastFor,
     onSelectDay: showDay,
     profile,
+    weather: state.weather,
   });
 
   // The header shows tonight's moon, which only makes sense on the current page.
@@ -195,7 +228,13 @@ function showDay(forecast, cell) {
   for (const other of elements.grid.querySelectorAll('.cell')) {
     other.classList.toggle('selected', other === cell);
   }
-  renderDayDetail({ container: elements.detail, forecast, profile });
+  renderDayDetail({
+    container: elements.detail,
+    forecast,
+    profile,
+    weather: state.weather.byDate[toDateKey(forecast.date)] ?? null,
+    waterTempF: state.weather.waterTempF,
+  });
   elements.detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 

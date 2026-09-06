@@ -7,7 +7,7 @@
  */
 
 import { bestWindow, secondBestWindow } from '../core/day.js';
-import { formatClockTime, formatClockTimeCompact, isSameDay } from '../core/time.js';
+import { formatClockTime, formatClockTimeCompact, isSameDay, toDateKey } from '../core/time.js';
 
 const DAYS_PER_WEEK = 7;
 const MAX_RATING = 5;
@@ -39,6 +39,8 @@ const tierFor = (rating, profile) => profile.ratingTiers.find((tier) => rating >
  * @param {(date: Date) => object} options.forecastFor
  * @param {(forecast: object, cell: HTMLElement) => void} options.onSelectDay
  * @param {import('../config.js').Profile} options.profile
+ * @param {import('../core/weather.js').WeatherOutlook} [options.weather] Only
+ *   covers about the next week, so most cells get nothing and that's expected.
  */
 export function renderCalendarGrid({
   container,
@@ -48,6 +50,7 @@ export function renderCalendarGrid({
   forecastFor,
   onSelectDay,
   profile,
+  weather,
 }) {
   container.replaceChildren();
 
@@ -62,7 +65,14 @@ export function renderCalendarGrid({
     const inRange = date >= rangeStart && date <= rangeEnd;
     container.append(
       inRange
-        ? buildDayCell(date, today, forecastFor(date), onSelectDay, profile)
+        ? buildDayCell(
+            date,
+            today,
+            forecastFor(date),
+            onSelectDay,
+            profile,
+            weather?.byDate?.[toDateKey(date)] ?? null,
+          )
         : buildOutOfRangeCell(date),
     );
   }
@@ -87,7 +97,7 @@ function cellTime(window, profile) {
   return profile.cellTime?.(window) ?? window.start;
 }
 
-function buildDayCell(date, today, forecast, onSelectDay, profile) {
+function buildDayCell(date, today, forecast, onSelectDay, profile, dayWeather) {
   const best = bestWindow(forecast);
   const second = secondBestWindow(forecast);
   const tier = tierFor(forecast.rating, profile);
@@ -118,7 +128,8 @@ function buildDayCell(date, today, forecast, onSelectDay, profile) {
           ? `<div class="second"><span class="or">or </span>${renderTime(cellTime(second, profile))}</div>`
           : ''
       }
-    </div>`;
+    </div>
+    ${renderWeatherLine(dayWeather)}`;
 
   cell.addEventListener('click', () => onSelectDay(forecast, cell));
   return cell;
@@ -130,6 +141,20 @@ function renderTime(localHours) {
     `<span class="full">${formatClockTime(localHours)}</span>` +
     `<span class="compact">${formatClockTimeCompact(localHours)}</span>`
   );
+}
+
+/**
+ * The weather strip at the foot of a cell, for the week the forecast reaches.
+ *
+ * Kept to two numbers because that's what fits, and because they're the two that
+ * change whether you go: how warm it is and how hard it's blowing. The strip is
+ * simply absent beyond the forecast horizon rather than showing a placeholder,
+ * so the edge of what's known is visible at a glance.
+ */
+function renderWeatherLine(dayWeather) {
+  if (!dayWeather || dayWeather.highF === null) return '';
+  const wind = dayWeather.windMph === null ? '' : ` <span class="wind">${dayWeather.windMph}mph</span>`;
+  return `<div class="wx">${dayWeather.highF}°${wind}</div>`;
 }
 
 /** The rating as filled and empty dots, countable at a glance across the grid. */

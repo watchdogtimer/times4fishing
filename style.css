@@ -320,3 +320,26 @@ a:hover{ color: var(--foam); }
   display:flex; align-items:center; justify-content:center;
 }
 .ad-slot:empty{ display:none; } /* Until there's an ad, take up nothing. */
+
+/* ---------------------------------------------------------------- *
+ * Weather overlay
+ *
+ * Only the next week or so has any, so these elements are simply absent on most
+ * cells rather than rendered empty. That makes the edge of the forecast visible
+ * without having to explain it.
+ * ---------------------------------------------------------------- */
+.cell .wx{
+  margin-top:3px; font-size:10.5px; color:var(--foam-dim);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.cell .wx .wind{ opacity:.75; }
+
+.wx-row{
+  display:flex; flex-wrap:wrap; gap:8px; align-items:baseline;
+  font-size:13px; color:var(--foam-dim); margin-top:6px;
+}
+.wx-row .wx-label{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.07em;
+  color:var(--tide-low); border:1px solid var(--line); border-radius:4px;
+  padding:1px 6px;
+}

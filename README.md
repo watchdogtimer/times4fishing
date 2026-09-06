@@ -141,6 +141,34 @@ latitude/longitude, that day's tide extremes and a profile, and it returns
 everything the views need for one day — sun and moon times, the scored windows,
 and the rating.
 
+## The weather overlay
+
+The next week or so of each calendar carries air temperature, wind and (where
+the station has a thermometer) water temperature, from the National Weather
+Service. NWS rather than the friendlier alternatives specifically because it's
+US public domain with no non-commercial restriction, which matters for a site
+that may carry an ad, and its coverage is the same US footprint as the NOAA tide
+stations everything else already depends on.
+
+**It never feeds the rating.** The calendar runs four weeks and the forecast
+reaches about seven days, so scoring it would judge the first week on different
+evidence from the rest — the same day would change rating as it drifted into the
+horizon, which is worse than useless for planning. Cells beyond the horizon
+simply have no strip, so the edge of what's known is visible without explaining
+it.
+
+It's also **only on the interactive calendar, not the server-rendered pages.**
+Those are cached until the location's midnight precisely because nothing on them
+goes stale sooner, and a forecast that updates hourly would break that. Tide
+times and astronomy are the durable, uniquely-computed content worth being cited
+for anyway.
+
+Surf and swell are still missing, and they matter more for tidepooling than
+anything else here. `waveHeight` does exist in the NWS gridpoint response but
+comes back degenerate at coastal land points — a single zero spanning the whole
+week — and a surf number that's silently wrong is worse than none on a page
+someone might make a safety call from. NDBC buoys are the likely answer.
+
 ## Deployment
 
 One Worker, two custom domains. `src/worker.js` picks the profile from the

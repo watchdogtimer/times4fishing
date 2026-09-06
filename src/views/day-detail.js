@@ -15,8 +15,11 @@ import { renderTideChart } from './tide-chart.js';
  * @param {HTMLElement} options.container The panel element.
  * @param {object} options.forecast
  * @param {import('../config.js').Profile} options.profile
+ * @param {import('../core/weather.js').DayWeather|null} [options.weather] Null
+ *   beyond the forecast horizon, which is most of the calendar.
+ * @param {number|null} [options.waterTempF]
  */
-export function renderDayDetail({ container, forecast, profile }) {
+export function renderDayDetail({ container, forecast, profile, weather, waterTempF }) {
   const heading = forecast.date.toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'long',
@@ -27,6 +30,7 @@ export function renderDayDetail({ container, forecast, profile }) {
   container.innerHTML = `
     <h2>${heading}</h2>
     <div class="sub">Rating ${forecast.rating} / 5 · ${forecast.phase.name} (${illuminatedPercent}% illuminated)</div>
+    ${renderWeather(weather, waterTempF)}
 
     <div class="chart-panel">
       ${renderTideChart(forecast, profile, new Date())}
@@ -50,6 +54,31 @@ export function renderDayDetail({ container, forecast, profile }) {
     </div>`;
 
   container.classList.add('show');
+}
+
+/**
+ * The weather row, for days inside the forecast horizon.
+ *
+ * Explicitly labelled as a forecast and kept visually separate from the tide and
+ * astronomy numbers above it, because they are not the same kind of claim: the
+ * tide times are published predictions good for years, this is a guess about
+ * next Tuesday.
+ */
+function renderWeather(weather, waterTempF) {
+  const parts = [];
+  if (weather && weather.highF !== null) {
+    parts.push(`${weather.highF}° / ${weather.lowF}°`);
+    if (weather.windMph !== null) {
+      const gust = weather.gustMph ? ` (gusting ${weather.gustMph})` : '';
+      parts.push(`wind ${weather.windMph} mph${gust}`);
+    }
+    if (weather.cloudPercent !== null) parts.push(`${weather.cloudPercent}% cloud`);
+    if (weather.precipPercent) parts.push(`${weather.precipPercent}% chance of rain`);
+  }
+  if (waterTempF !== null && waterTempF !== undefined) parts.push(`water ${waterTempF}°`);
+
+  if (parts.length === 0) return '';
+  return `<div class="wx-row"><span class="wx-label">Forecast</span>${parts.join(' · ')}</div>`;
 }
 
 function renderFacts(forecast) {
