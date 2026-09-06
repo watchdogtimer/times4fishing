@@ -13,23 +13,42 @@ decided by hostname at runtime, so both run from a single deployment.
 
 ## Running it
 
-Any static file server will do, since there's nothing to compile:
+There's still nothing to compile, but there are now two ways to run it depending
+on what you're working on.
+
+**The app on its own.** Any static file server will do:
 
 ```bash
 python3 -m http.server 8788
 ```
 
-Then open <http://localhost:8788>. Tide data needs network access to NOAA.
+**The Worker as well**, which is what you want for the server-rendered pages,
+the hostname routing and the caching:
+
+```bash
+npx wrangler dev --persist-to ../.times4-wrangler-state
+```
+
+Tide data needs network access to NOAA either way.
+
+> The `--persist-to` matters. `assets.directory` is the repo root, so wrangler
+> watches it — including the `.wrangler/` state directory it writes into. Left
+> alone, every write triggers a reload that causes another write, and the dev
+> server spins forever without answering a request. Pointing the state outside
+> the repo breaks the loop.
 
 Both sites run from one tree, so locally you pick between them with a query
 parameter rather than a hosts file:
 
 ```
 http://localhost:8788/?profile=tidepooling
+http://localhost:8790/spots/san-diego-ca/?profile=tidepooling
 ```
 
-On the real domains the hostname decides, and `?profile=` is only a dev
-convenience — it can't change what a crawler sees on either site.
+The override is refused on the production hostnames, which matters more than it
+looks: `times4fishing.com/?profile=tidepooling` would otherwise serve one site's
+content under the other's URL, and that's the duplicate-content pattern search
+engines penalise.
 
 ## Layout
 
@@ -57,6 +76,32 @@ Dependencies point one way: `core/` depends on nothing else, `profiles/` uses
 `core/`, `views/` uses both, and `main.js` uses everything. Nothing outside
 `views/` touches the DOM, which is what makes the maths testable in plain Node
 and lets the same modules server-render pages in a Worker.
+
+## Two ways in
+
+The site has two front doors and they're built for different readers.
+
+`/` is the **interactive calendar**: geolocation, an arbitrary lat/lon, any NOAA
+station, four weeks at a time. It's a client-side app and always has been.
+
+`/tides/san-diego-ca/` (and `/spots/…` on the tidepooling site) is a
+**server-rendered page** for one curated location. Every number is in the HTML
+before a line of script runs.
+
+That second door exists because the app is invisible to most of what decides
+whether a site gets found. Google renders JavaScript eventually and on a second
+pass; the AI crawlers that increasingly choose what to cite mostly don't run it
+at all and would otherwise see an empty div. So those pages lead with a plain
+sentence stating the answer, put the data in a real `<table>`, and carry
+`Dataset` and `FAQPage` JSON-LD. `/robots.txt`, `/sitemap.xml` and `/llms.txt`
+are generated per hostname.
+
+The pages contain **nothing that varies by reader** — no geolocation, no
+preferences, no clock beyond the local date. That's a deliberate constraint
+rather than a missing feature: it means one render is correct for everyone until
+that place's midnight, which is exactly how long it's cached for
+(`s-maxage` = seconds to local midnight). A cold render costs about half a
+second, mostly waiting on NOAA; a cached one is single-digit milliseconds.
 
 ## The two profiles
 
@@ -95,6 +140,19 @@ there's no incremental-update logic to get wrong.
 latitude/longitude, that day's tide extremes and a profile, and it returns
 everything the views need for one day — sun and moon times, the scored windows,
 and the rating.
+
+## Deployment
+
+One Worker, two custom domains. `src/worker.js` picks the profile from the
+request hostname, rewrites the app shell's `<head>` with `HTMLRewriter` on the
+way out, and renders the location pages itself. Everything else — `style.css`,
+the client modules — is served straight from static assets and never touches the
+Worker.
+
+`assets.run_worker_first` lists the paths the Worker must see before the
+static-asset handler does. Without it, `/` would be served straight off disk
+with whichever site's `<head>` happens to be in `index.html`, which defeats the
+point.
 
 ## Conventions
 

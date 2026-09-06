@@ -148,3 +148,47 @@ export function utcOffsetHoursInZone(date, timeZone) {
   // Positive west of Greenwich, matching localToUtcOffsetHours.
   return (date.getTime() - wallClockAsUtc) / (60 * 60 * 1000);
 }
+
+/**
+ * The current calendar date in a given timezone, as a Date whose year, month
+ * and day read back correctly through `getFullYear`/`getMonth`/`getDate`.
+ *
+ * The whole codebase treats a Date as a carrier for a *calendar date* and keeps
+ * the time-of-day separate as local hours, which is what lets the astronomy run
+ * anywhere as long as it's handed the right UTC offset. This builds such a Date
+ * for another zone: noon is used rather than midnight so no amount of
+ * daylight-saving arithmetic can tip it into the neighbouring day.
+ *
+ * @param {string} timeZone IANA name.
+ * @param {Date} [now]
+ */
+export function todayInZone(timeZone, now = new Date()) {
+  const [month, day, year] = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .format(now)
+    .split('/')
+    .map(Number);
+  return new Date(year, month - 1, day, 12);
+}
+
+/**
+ * Seconds until the next local midnight in a timezone.
+ *
+ * The whole point of the server-rendered pages is that one render is good for
+ * everyone for the rest of that place's day, so this is the cache lifetime.
+ * Floored at a minute so a request landing exactly on midnight can't ask for a
+ * zero or negative max-age.
+ *
+ * @param {string} timeZone IANA name.
+ * @param {Date} [now]
+ */
+export function secondsUntilMidnightInZone(timeZone, now = new Date()) {
+  const offsetHours = utcOffsetHoursInZone(now, timeZone);
+  const localMs = now.getTime() - offsetHours * 60 * 60 * 1000;
+  const msIntoDay = ((localMs % 86400000) + 86400000) % 86400000;
+  return Math.max(60, Math.round((86400000 - msIntoDay) / 1000));
+}

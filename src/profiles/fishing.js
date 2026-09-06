@@ -14,6 +14,7 @@
 
 import { bestWindow, fractionWithin, rankWindows } from '../core/day.js';
 import { addHours, formatClockTime, isWithinHours } from '../core/time.js';
+import { LOCATIONS } from '../locations.js';
 
 export const MAJOR = 'Major';
 export const MINOR = 'Minor';
@@ -294,6 +295,66 @@ export default {
       <p><b>The tide curve</b> on each day is drawn between NOAA's published high and low waters by fitting a half cosine across each half-cycle. The peaks and troughs are exact; the shape in between is a very good approximation, but it isn't NOAA's own six-minute prediction. Don't plan a bar crossing by it.</p>
       <p><b>Windows outside 6 AM to 10 PM are discounted</b> when rating a day. The astronomy doesn't care what time it is, but you probably do, so a major period at 1 AM still gets listed and charted while counting for a fraction of a daytime one. That's why the best window shown on a calendar cell is nearly always at a civilised hour.</p>
       <p>Solunar theory has a real physical basis (lunar gravity drives tides, and moving water is a well-documented feeding trigger) but the specific claim of sharp 1–2 hour "best window" spikes is folk-science in origin, not a peer-reviewed model — treat the rating as one input, not gospel. Weather, pressure, and species behavior matter too and aren't modeled here.</p>`,
+  /* --- Server-rendered pages ------------------------------------- */
+
+  pathPrefix: 'tides',
+  pageTitleVerb: 'Fishing times',
+  locations: LOCATIONS,
+  tableTimeHeading: 'Best window',
+  tableDetailHeading: 'Why',
+
+  /**
+   * The one sentence an assistant is most likely to quote back.
+   *
+   * Written to stand alone with no surrounding context, because that's exactly
+   * how it will be lifted: place, date, time and reason, in a single clause
+   * each.
+   */
+  leadSentence(best, location) {
+    const place = `${location.name}, ${location.region}`;
+    if (!best) return `No forecast is available for ${place} at the moment.`;
+
+    const window = best.windows.find((candidate) => candidate.rank === 1);
+    const when = best.date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    if (!window) {
+      return `The best fishing in ${place} over the next four weeks is ${when}, rated ${best.rating} out of 5.`;
+    }
+    const reason = window.sunEvent
+      ? ` as the ${window.label.toLowerCase()} lines up with ${window.sunEvent}`
+      : window.tideEvent
+        ? ` as the ${window.label.toLowerCase()} lines up with the ${window.tideEvent.type === 'H' ? 'high' : 'low'} tide`
+        : ` on the ${window.label.toLowerCase()}`;
+    return (
+      `The best fishing in ${place} over the next four weeks is ${when}, ` +
+      `rated ${best.rating} out of 5, with its strongest window opening at ` +
+      `${formatClockTime(window.start)}${reason}.`
+    );
+  },
+
+  tableDetail(day, window) {
+    if (!window) return 'No windows';
+    const notes = [window.label];
+    if (window.sunEvent) notes.push(`near ${window.sunEvent}`);
+    if (window.tideEvent) {
+      notes.push(`near ${window.tideEvent.type === 'H' ? 'high' : 'low'} tide`);
+    }
+    return notes.join(', ');
+  },
+
+  llmsSummary: `Each day in the next four weeks is rated 0-5 for fishing, based on
+John Alden Knight's solunar theory: two major periods when the moon is overhead
+or underfoot, two minor ones at moonrise and moonset. A window scores higher when
+it overlaps sunrise, sunset, or a high or low tide, and windows outside 6 AM to
+10 PM are discounted because almost nobody fishes them.
+
+Solunar theory has a real physical basis, but its sharp "best window" claims are
+folk science rather than a peer-reviewed model. Treat the rating as one input.
+Weather, pressure and species behaviour are not modelled.`,
   rateDay,
 
   /** @param {FishingWindow} window */

@@ -43,14 +43,27 @@ export function profileForHostname(hostname = '') {
   return byName ?? fishing;
 }
 
+/** Every hostname a real site answers on. */
+const PRODUCTION_HOSTNAMES = new Set(
+  Object.values(PROFILES).flatMap((profile) => profile.hostnames),
+);
+
 /**
- * The profile for the current page, honouring a `?profile=` override.
+ * The profile for a request, honouring a `?profile=` override off production.
  *
  * The override exists so both sites can be checked from one `wrangler dev`
- * without editing hosts files. It only reads the query string, so it can't
- * affect what a crawler sees on the real domains.
+ * without editing hosts files. It is refused on the live domains, which matters
+ * more than it looks: `times4fishing.com/?profile=tidepooling` would otherwise
+ * serve the other site's content under this site's URL, and duplicate content
+ * under a second URL is exactly what search engines penalise.
+ *
+ * @param {{hostname: string, search?: string}} location A URL or `window.location`.
  */
 export function activeProfile(location = globalThis.location) {
-  const requested = new URLSearchParams(location?.search ?? '').get('profile');
-  return PROFILES[requested] ?? profileForHostname(location?.hostname ?? '');
+  const hostname = location?.hostname ?? '';
+  if (!PRODUCTION_HOSTNAMES.has(hostname.toLowerCase())) {
+    const requested = new URLSearchParams(location?.search ?? '').get('profile');
+    if (PROFILES[requested]) return PROFILES[requested];
+  }
+  return profileForHostname(hostname);
 }

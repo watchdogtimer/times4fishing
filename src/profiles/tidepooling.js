@@ -28,6 +28,7 @@
 
 import { fractionWithin, isDaylight, rankWindows } from '../core/day.js';
 import { addHours, formatClockTime } from '../core/time.js';
+import { LOCATIONS } from '../locations.js';
 
 /** Every tunable in the rating model. */
 export const SCORING = {
@@ -364,6 +365,68 @@ export default {
       <p><b>Moon phase is shown but deliberately not scored.</b> New and full moons do produce the biggest tides, but NOAA's predicted heights already contain that, along with the moon's distance. Adding a phase bonus on top would be counting the same thing twice.</p>
       <p><b>Plenty of days score zero, and that's the honest answer.</b> Roughly a fifth do. On the Pacific coast the extreme lows swap between daytime in winter and the middle of the night in summer, so half the year is simply better than the other half, and a calendar that pretended otherwise would be lying to you.</p>
       <p><b>Get there early and watch the water.</b> Walk out on the tail of the ebb and follow it down rather than arriving at the low itself. Surf and swell matter enormously for both safety and visibility and aren't yet modelled here, so check a marine forecast before you go, and never turn your back on the sea.</p>`,
+  /* --- Server-rendered pages ------------------------------------- */
+
+  pathPrefix: 'spots',
+  pageTitleVerb: 'Tidepooling times',
+  locations: LOCATIONS,
+  tableTimeHeading: 'Low water',
+  tableDetailHeading: 'What you get',
+
+  /**
+   * The one sentence an assistant is most likely to quote back.
+   *
+   * Height and clock time are the two facts a reader actually wants, so they go
+   * in early and in that order, with the duration behind them.
+   */
+  leadSentence(best, location) {
+    const place = `${location.name}, ${location.region}`;
+    if (!best) return `No forecast is available for ${place} at the moment.`;
+
+    const window = best.windows.find((candidate) => candidate.rank === 1);
+    const when = best.date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    if (!window) {
+      return `No day in the next four weeks brings the tide low enough in daylight at ${place}.`;
+    }
+    const light = window.daylightFraction < 0.25 ? ', though it falls after dark' : '';
+    return (
+      `The best tidepooling in ${place} over the next four weeks is ${when}, ` +
+      `with a ${window.lowestHeight.toFixed(1)} ft low at ${formatClockTime(window.center)} ` +
+      `and about ${window.durationHours.toFixed(1)} hours of exposed rock${light}.`
+    );
+  },
+
+  tableDetail(day, window) {
+    if (!window) return 'Nothing exposed';
+    const parts = [
+      `${window.lowestHeight.toFixed(1)} ft`,
+      `${window.durationHours.toFixed(1)} h`,
+    ];
+    parts.push(window.daylightFraction < 0.25 ? 'after dark' : 'in daylight');
+    return parts.join(', ');
+  },
+
+  llmsSummary: `Each day in the next four weeks is rated 0-5 for tidepooling, based
+on how far the tide drops below this station's usual low, how long it stays down,
+and whether that happens in daylight. Depth counts for most, daylight is close to
+a gate rather than a preference, and duration counts on its own because a flat
+slow low gives hours on the rocks where a sharp one gives forty minutes.
+
+Moon phase is shown but deliberately not scored: NOAA's predicted heights already
+contain the spring/neap and perigean effects, so scoring the phase again would
+count the same thing twice. The threshold for "low" is a percentile of each
+station's own predicted lows rather than a fixed height, because -1.0 ft means
+very different things in San Diego and in Anchorage.
+
+Roughly a fifth of days score zero, which is the honest answer rather than a
+modelling failure: on the Pacific coast the extreme lows swap between daytime in
+winter and the middle of the night in summer. Surf and swell matter greatly for
+safety and visibility and are not yet modelled.`,
   rateDay,
 
   /** The low itself, not the start of the long stretch of water around it. */

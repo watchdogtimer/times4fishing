@@ -3,8 +3,16 @@
   "configurations": [
     {
       "name": "times4",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8790"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "wrangler",
+        "dev",
+        "--port",
+        "8790",
+        "--local",
+        "--persist-to",
+        "../.times4-wrangler-state"
+      ],
       "port": 8790
     }
   ]

@@ -249,3 +249,74 @@ details.about code{ background: var(--panel-2); padding:1px 5px; font-size:12px;
   .chart-tick, .chart-extreme-label{ font-size:12px; }
   .chart-sun-label, .chart-window-label, .chart-now-label{ font-size:11px; }
 }
+
+/* ---------------------------------------------------------------- *
+ * Server-rendered location pages
+ *
+ * These share the app's palette but are documents, not applications: no script,
+ * no interaction, just the numbers in a form a crawler can read. The styles are
+ * deliberately few, because the markup is deliberately plain.
+ * ---------------------------------------------------------------- */
+
+.blurb{
+  max-width: 62ch; color: var(--foam-dim); font-size: 15px;
+  border-left: 2px solid var(--kelp-dim); padding-left: 14px; margin: 0 0 28px;
+}
+h2{
+  font-family:'Fraunces', serif; font-weight:600; font-size: 22px;
+  margin: 34px 0 14px;
+}
+
+/* Wide content scrolls inside its own box rather than the page. */
+.table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
+.day-table{ border-collapse:collapse; width:100%; font-size:14px; min-width:520px; }
+.day-table caption{
+  text-align:left; padding:12px 14px; color:var(--foam-dim); font-size:12.5px;
+  border-bottom:1px solid var(--line);
+}
+.day-table th, .day-table td{ padding:9px 14px; text-align:left; border-bottom:1px solid var(--line); }
+.day-table thead th{
+  font-size:11.5px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--foam-dim); font-weight:600;
+}
+.day-table tbody th{ font-weight:500; white-space:nowrap; }
+.day-table tbody tr:last-child th, .day-table tbody tr:last-child td{ border-bottom:0; }
+.day-table tbody tr:hover{ background:var(--panel-2); }
+
+.about-body p{ max-width: 72ch; font-size:14.5px; color:var(--foam-dim); }
+.about-body b{ color:var(--foam); font-weight:600; }
+
+.place-list{ columns: 2; column-gap: 28px; list-style:none; padding:0; max-width:620px; }
+.place-list li{ padding:5px 0; break-inside:avoid; }
+.other-places{ font-size:13.5px; color:var(--foam-dim); line-height:2; max-width:72ch; }
+a{ color: var(--brass); }
+a:hover{ color: var(--foam); }
+
+.page-footer{
+  margin-top:44px; padding-top:20px; border-top:1px solid var(--line);
+  font-size:13px; color:var(--foam-dim);
+}
+.page-footer p{ max-width:72ch; }
+
+/* ---------------------------------------------------------------- *
+ * Ad slot
+ *
+ * Empty for now, but the space is reserved from day one. A single ad unit that
+ * appears after load and pushes the calendar down is the standard way to wreck
+ * a Core Web Vitals score, and reserving the box costs nothing while there's
+ * nothing in it.
+ *
+ * It lives between the grid and the detail panel on purpose. The panel scrolls
+ * into view whenever a day is clicked, so the slot is passed over on every
+ * interaction without ever sitting between the reader and what they came for.
+ * It is also deliberately OUTSIDE #grid and #detail, both of which are wiped
+ * and rebuilt with innerHTML on every render — an ad unit in there would
+ * re-initialise on every click, which breaks the unit and looks like invalid
+ * traffic to an ad network.
+ * ---------------------------------------------------------------- */
+.ad-slot{
+  min-height: 100px;           /* Reserve the box: no layout shift on fill. */
+  margin: 22px 0 6px;
+  display:flex; align-items:center; justify-content:center;
+}
+.ad-slot:empty{ display:none; } /* Until there's an ad, take up nothing. */
