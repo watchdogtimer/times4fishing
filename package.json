@@ -1,1 +1,8 @@
-{"name":"times4","private":true,"type":"module"}
+{
+  "name": "times4",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "wrangler": "^4.129.0"
+  }
+}

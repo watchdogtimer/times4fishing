@@ -171,6 +171,18 @@ someone might make a safety call from. NDBC buoys are the likely answer.
 
 ## Deployment
 
+**Pushing to `main` deploys.** Cloudflare Workers Builds watches the repo, so
+there is no separate release step and no safe "just push it" — every commit that
+reaches `origin/main` is live within a few minutes. A failed build is harmless
+(the previous deployment keeps serving), but a successful one goes straight to
+production.
+
+`wrangler` is pinned in `devDependencies` so the build uses a version known to
+understand this config; `npx wrangler deploy --dry-run` locally checks it before
+you push. `.assetsignore` keeps `node_modules`, `package.json`, the README and
+`src/worker.js` itself out of the served bundle — worth re-checking with a local
+`wrangler dev` if you ever add a file that shouldn't be public.
+
 One Worker, two custom domains. It's still named `times4fishing` because that's
 the Worker the live domain is already attached to; renaming it would quietly
 create a second empty one and leave the real site on the old code.
