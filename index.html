@@ -21,15 +21,19 @@
   </header>
 
   <div class="controls">
-    <div>
-      <label>Latitude</label>
-      <input id="lat" type="text" value="32.7157">
+    <div class="location-field">
+      <span class="control-label">Location</span>
+      <!-- The panel is the control: it shows where you are and opens the picker.
+           A button rather than a div, so it's reachable by keyboard and reads as
+           something you can press. -->
+      <button class="map-thumb" id="mapThumb" type="button"
+              aria-label="Change location — opens a map"></button>
     </div>
-    <div>
-      <label>Longitude</label>
-      <input id="lon" type="text" value="-117.1611">
+    <div class="location-actions">
+      <div class="place" id="place">San Diego, CA (default)</div>
+      <button id="pickOnMap">Choose on a map</button>
+      <button id="locate">Use my location</button>
     </div>
-    <button id="locate">Use my location</button>
 
     <div>
       <label>NOAA station ID</label>
@@ -41,10 +45,25 @@
       <input id="includeSleeping" type="checkbox">
       <span>Include sleeping hours<em>Off: only 6 AM – 10 PM counts toward a day's rating</em></span>
     </label>
-    <div class="place" id="place">San Diego, CA (default)</div>
     <div class="tide-status" id="tideStatus">No tide station set — moon &amp; sun windows only.</div>
     <div class="nearby" id="nearby" hidden></div>
   </div>
+
+  <dialog class="picker" id="picker" aria-labelledby="pickerTitle">
+    <form method="dialog" class="picker-body">
+      <h2 id="pickerTitle">Choose a location</h2>
+      <p class="picker-hint">
+        <span id="pickerHint">Click the map, or drag the pin.</span>
+        <span class="picker-coords" id="pickerCoords"></span>
+      </p>
+      <div class="picker-map" id="map" role="application"
+           aria-label="Map: click to choose a location"></div>
+      <div class="picker-actions">
+        <button value="cancel" id="pickerCancel">Cancel</button>
+        <button value="confirm" id="pickerConfirm" class="primary">Use this spot</button>
+      </div>
+    </form>
+  </dialog>
 
   <div class="legend">
     <span>Each day is rated out of five:</span>

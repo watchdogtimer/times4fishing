@@ -7,9 +7,22 @@ Two four-week calendars from one codebase:
 - **times4tidepooling.com** ranks days by when the tide drops far enough, for
   long enough, in daylight.
 
-No build step, no dependencies, no accounts — plain ES modules served as static
-files (Cloudflare Workers assets, see `wrangler.jsonc`). Which site you get is
-decided by hostname at runtime, so both run from a single deployment.
+No build step and no accounts — plain ES modules served as static files
+(Cloudflare Workers assets, see `wrangler.jsonc`). Which site you get is decided
+by hostname at runtime, so both run from a single deployment.
+
+There is exactly one runtime dependency: **Leaflet**, for the map you pick a
+location on. It held out at zero for a while, and the honest reading is that it
+was never going to last: a map is the one thing here people genuinely can't do
+without, and a slippy map is a lot of code to own for a solved problem.
+
+It is kept on a short leash. It's fetched from a CDN on the first open of the
+picker and never before, so a reader who only looks at the calendar loads
+nothing from anyone but us. Both files are pinned to an exact version with an
+integrity hash, so the CDN can't change what runs here without the browser
+refusing it. And if it doesn't arrive, the picker says so and the rest of the
+page is untouched. It stays the only one — anything that wants to be the second
+should have to argue for it.
 
 ## Running it
 
@@ -69,6 +82,8 @@ src/
   views/            Driven entirely by the profile's vocabulary
     calendar-grid.js  The four-week grid
     day-detail.js     The panel shown when a day is clicked
+    location-map.js   The picker's Leaflet map, and the loader that fetches it
+    location-thumbnail.js  The little map panel in the controls: plain <img> tiles
     tide-chart.js     The SVG tide chart
 ```
 
@@ -81,8 +96,16 @@ and lets the same modules server-render pages in a Worker.
 
 The site has two front doors and they're built for different readers.
 
-`/` is the **interactive calendar**: geolocation, an arbitrary lat/lon, any NOAA
+`/` is the **interactive calendar**: any spot on a map, geolocation, any NOAA
 station, four weeks at a time. It's a client-side app and always has been.
+
+Location used to be two text boxes asking for a latitude and a longitude, which
+is the one thing about their fishing spot a reader definitely doesn't know. Now
+a small map panel in the controls shows where you are and opens a full picker
+when you click it; the coordinates still exist, they're just nobody's problem
+but ours. They persist in `localStorage` alongside the station — see
+`core/settings.js` — which with the boxes gone is the only thing standing
+between a returning reader and San Diego every morning.
 
 `/tides/san-diego-ca/` (and `/spots/…` on the tidepooling site) is a
 **server-rendered page** for one curated location. Every number is in the HTML

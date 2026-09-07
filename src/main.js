@@ -23,6 +23,8 @@ import { loadSettings, saveSettings } from './core/settings.js';
 import { emptyOutlook, fetchWeatherOutlook } from './core/weather.js';
 import { stationTideStats } from './profiles/tidepooling.js';
 import { renderCalendarGrid } from './views/calendar-grid.js';
+import { createLocationMap, loadLeaflet } from './views/location-map.js';
+import { renderLocationThumbnail } from './views/location-thumbnail.js';
 import { renderMoonPhase } from './views/moon-phase.js';
 import { renderDayDetail } from './views/day-detail.js';
 
@@ -43,8 +45,6 @@ const elements = {
   moonToday: document.getElementById('moonToday'),
   tideStatus: document.getElementById('tideStatus'),
   place: document.getElementById('place'),
-  latitude: document.getElementById('lat'),
-  longitude: document.getElementById('lon'),
   station: document.getElementById('station'),
   update: document.getElementById('recalc'),
   locate: document.getElementById('locate'),
@@ -53,7 +53,33 @@ const elements = {
   nextPage: document.getElementById('nextPage'),
   includeSleeping: document.getElementById('includeSleeping'),
   nearby: document.getElementById('nearby'),
+  map: document.getElementById('map'),
+  mapThumb: document.getElementById('mapThumb'),
+  pickOnMap: document.getElementById('pickOnMap'),
+  picker: document.getElementById('picker'),
+  pickerHint: document.getElementById('pickerHint'),
+  pickerCoords: document.getElementById('pickerCoords'),
+  pickerConfirm: document.getElementById('pickerConfirm'),
 };
+
+/**
+ * The picker's map, built the first time the picker is opened and kept after.
+ *
+ * Null until then, and null forever if Leaflet can't be fetched — everything
+ * that touches it uses `?.`, because "no map" is a state the page has to keep
+ * working in. See `views/location-map.js`.
+ * @type {ReturnType<typeof createLocationMap>|null}
+ */
+let pickerMap = null;
+
+/**
+ * The spot the picker's pin is on, which is not yet the app's location.
+ *
+ * The picker commits on "Use this spot" rather than on every click, so you can
+ * pan around and change your mind. Cancelling drops this on the floor.
+ * @type {{latitude: number, longitude: number}|null}
+ */
+let pendingLocation = null;
 
 const state = {
   /** 0 is the four weeks starting today; higher numbers move forward. Never negative. */
@@ -95,8 +121,6 @@ function restoreSavedSettings() {
   state.stationId = saved.stationId;
   state.includeSleepingHours = saved.includeSleepingHours;
 
-  elements.latitude.value = saved.latitude.toFixed(4);
-  elements.longitude.value = saved.longitude.toFixed(4);
   elements.station.value = saved.stationId ?? '';
   elements.includeSleeping.checked = saved.includeSleepingHours;
   if (saved.placeLabel) elements.place.textContent = saved.placeLabel;
@@ -114,16 +138,46 @@ function applyLocation(location, placeLabel) {
   Object.assign(state, location);
   state.stationId = elements.station.value.trim() || null;
   elements.place.textContent = placeLabel;
+  drawLocationThumbnail();
   rememberSettings();
   hideDetail();
   refresh();
 }
 
-/** What to call a set of coordinates when we've no better name for them. */
+/** Redraw the little map panel on whatever the current location is. */
+function drawLocationThumbnail() {
+  renderLocationThumbnail({
+    container: elements.mapThumb,
+    latitude: state.latitude,
+    longitude: state.longitude,
+  });
+}
+
+/**
+ * What to call a spot on the map.
+ *
+ * Coordinates used to be the answer, because coordinates were also the input
+ * and the label just echoed what you'd typed. With the boxes gone that reads as
+ * the app telling you a number you never asked for, so it says the nearest
+ * written-up place instead, with the distance so it can't overclaim: "14 mi
+ * from Monterey, California" is true in a way that "Monterey" wouldn't be.
+ *
+ * There's no geocoder behind this and there isn't going to be — it's the same
+ * curated list the "written up nearby" row uses. Past its reach we fall back to
+ * coordinates, because for a point in the open Pacific there is genuinely
+ * nothing else honest to say.
+ */
 function describePlace({ latitude, longitude }) {
-  const isDefault =
-    latitude === DEFAULT_LOCATION.latitude && longitude === DEFAULT_LOCATION.longitude;
-  return isDefault ? DEFAULT_PLACE_LABEL : `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+  if (latitude === DEFAULT_LOCATION.latitude && longitude === DEFAULT_LOCATION.longitude) {
+    return DEFAULT_PLACE_LABEL;
+  }
+
+  const [nearest] = nearbyLocations(latitude, longitude, { limit: 1 });
+  if (!nearest) return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+
+  const { location, miles } = nearest;
+  const where = `${location.name}, ${location.region}`;
+  return miles < 2 ? where : `${Math.round(miles)} mi from ${where}`;
 }
 
 /** Remember where we are, so the next visit opens here. */
@@ -158,6 +212,10 @@ function applyProfileChrome() {
     if (element) element.innerHTML = html;
   };
   set('headline', profile.headline);
+  // The picker is JS-only, so unlike the rest of the chrome the Worker has no
+  // reason to mirror this one: nothing without a browser ever opens the dialog.
+  // The markup carries neutral wording so it reads right until this runs.
+  set('pickerTitle', `Where do you go ${escapeHtml(profile.activity)}?`);
 
   // Hidden in the markup by default, so nothing flashes up before this runs.
   const support = document.getElementById('support');
@@ -369,25 +427,84 @@ function formatRange(start, end) {
  * ---------------------------------------------------------------- */
 
 /**
- * Read the coordinate inputs.
+ * The picker.
  *
- * @returns {{latitude: number, longitude: number}|null} Null if either is unusable.
+ * Opening it is the only thing on this page that reaches for Leaflet, so the
+ * dialog goes up first and the map fills in when it arrives. That ordering is
+ * the point: a slow CDN should look like a map that takes a moment, not like a
+ * button that does nothing.
  */
-function readLocationInputs() {
-  const latitude = parseFloat(elements.latitude.value);
-  const longitude = parseFloat(elements.longitude.value);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
-  return { latitude, longitude };
-}
+async function openPicker() {
+  pendingLocation = null;
+  showPicker({ hint: 'Loading the map…', coords: '', ready: false });
+  elements.picker.showModal();
 
-elements.update.addEventListener('click', () => {
-  const location = readLocationInputs();
-  if (!location) {
-    setStatus('Enter a latitude between -90 and 90 and a longitude between -180 and 180.');
+  try {
+    await loadLeaflet();
+  } catch {
+    // The one honest thing left to say. The station controls and "Use my
+    // location" are untouched, and the calendar behind this is still correct.
+    showPicker({
+      hint: "The map didn't load. You can still use your browser's location instead.",
+      coords: '',
+      ready: false,
+    });
     return;
   }
+
+  pickerMap ??= createLocationMap({
+    container: elements.map,
+    latitude: state.latitude,
+    longitude: state.longitude,
+    onPick: (location) => {
+      pendingLocation = location;
+      // Coordinates here rather than a place name: this line's job is to
+      // confirm the pin moved, and a name 14 miles away doesn't change when
+      // you nudge it.
+      showPicker({ hint: 'Click the map, or drag the pin.', coords: formatCoordinates(location), ready: true });
+    },
+  });
+
+  // Leaflet caches the size it was built at, and the dialog can be reopened at
+  // a different one. Then back to wherever the app actually is, in case the
+  // location changed by other means since the last open.
+  pickerMap.refresh();
+  pickerMap.moveTo(state.latitude, state.longitude);
+  showPicker({
+    hint: 'Click the map, or drag the pin.',
+    coords: formatCoordinates(state),
+    ready: true,
+  });
+}
+
+/** The picker's own readout of exactly where the pin is. */
+const formatCoordinates = ({ latitude, longitude }) =>
+  `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+
+function showPicker({ hint, coords, ready }) {
+  elements.pickerHint.textContent = hint;
+  elements.pickerCoords.textContent = coords;
+  elements.pickerConfirm.disabled = !ready;
+}
+
+elements.pickOnMap.addEventListener('click', openPicker);
+elements.mapThumb.addEventListener('click', openPicker);
+
+elements.picker.addEventListener('close', () => {
+  // `<form method="dialog">` gives us the button's value for free, so cancelling
+  // — including by pressing Escape, which returns "" — needs no handling at all.
+  if (elements.picker.returnValue !== 'confirm') return;
+  const location = pendingLocation ?? { latitude: state.latitude, longitude: state.longitude };
   applyLocation(location, describePlace(location));
+});
+
+// Nothing to re-read: the location lives in `state` and the station in its
+// input, so this is "load the station I just typed" against where we already are.
+elements.update.addEventListener('click', () => {
+  applyLocation(
+    { latitude: state.latitude, longitude: state.longitude },
+    elements.place.textContent.trim(),
+  );
 });
 
 elements.locate.addEventListener('click', () => {
@@ -402,23 +519,19 @@ elements.locate.addEventListener('click', () => {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       };
-      elements.latitude.value = location.latitude.toFixed(4);
-      elements.longitude.value = location.longitude.toFixed(4);
       applyLocation(location, 'Your current location');
+      // Only if the picker has already been built — this must not be the thing
+      // that drags Leaflet onto the page.
+      pickerMap?.moveTo(location.latitude, location.longitude, { zoom: 12 });
     },
     (error) => setStatus(`Could not get your location: ${error.message}`),
   );
 });
 
 elements.findStation.addEventListener('click', async () => {
-  const location = readLocationInputs();
-  if (!location) {
-    setStatus('Enter a valid latitude and longitude first.');
-    return;
-  }
   setStatus('Looking up the nearest NOAA station…');
   try {
-    const station = await findNearestStation(location.latitude, location.longitude);
+    const station = await findNearestStation(state.latitude, state.longitude);
     elements.station.value = station.id;
     setStatus(
       `Nearest station: ${station.name} (#${station.id}, ${station.distanceMiles.toFixed(1)} mi away). ` +
@@ -454,4 +567,9 @@ applyProfileChrome();
 // than the default flashing up and being replaced. `refresh` owns the status
 // line from here on, so restoring says nothing — the filled-in fields show it.
 restoreSavedSettings();
+// After the restore, so the panel shows the place you left rather than the
+// default. It's the only thing on the page that says where you are now that the
+// coordinate boxes are gone, so it must not lag a frame behind.
+drawLocationThumbnail();
+
 refresh();

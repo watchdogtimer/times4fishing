@@ -57,10 +57,11 @@ export const PROFILES = { fishing, tidepooling };
  * hop for nothing.
  *
  * Ko-fi's own recommendation is a script tag from storage.ko-fi.com that draws
- * a button. Not used: this site tells the reader it carries no ads and no
- * accounts, and the first third-party script on the page is where that stops
- * being straightforwardly true. A link does the same job with no dependency,
- * no latency, and in the site's own colours.
+ * a button. Not used. The page does now carry one third-party script — Leaflet,
+ * for the map — so the argument isn't "never any", it's that this one buys
+ * nothing: a link does the same job with no dependency, no latency, nothing
+ * watching who clicks it, and in the site's own colours. A donation widget that
+ * phones home on every page view is a different trade from a map.
  */
 export const SUPPORT_URL = 'https://ko-fi.com/tomhartwell';
 

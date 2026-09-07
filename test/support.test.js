@@ -31,8 +31,8 @@ describe('support link', () => {
   });
 
   test('no third-party script rides along with it', () => {
-    // The site promises no ads and no accounts; a donation widget phoning home
-    // would be the first thing to make that untrue.
+    // Leaflet is the one third-party script the page is allowed; a donation
+    // widget tracking every page view is not the second. See config.js.
     for (const file of ['../index.html', '../src/config.js', '../src/render/html.js']) {
       assert.doesNotMatch(read(file), /ko-fi\.com\/cdn|kofiwidget/i, `${file} embeds Ko-fi JS`);
     }

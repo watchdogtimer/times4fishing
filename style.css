@@ -101,6 +101,110 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
 .controls .toggle[hidden]{ display:none; }
 .controls .toggle input{ width:auto; margin:2px 0 0; accent-color: var(--brass); cursor:pointer; }
 .controls .toggle em{ display:block; font-style:normal; font-size:11.5px; color:var(--foam-dim); }
+
+/* ---------------------------------------------------------------- *
+ * Choosing a location
+ * ---------------------------------------------------------------- */
+
+/**
+ * The little map panel, and the picker it opens.
+ *
+ * The panel is the whole location control: it shows where you are and it's the
+ * way to change it. Coordinates used to be two text boxes, which asked the
+ * reader for the one thing about their fishing spot they definitely don't know.
+ *
+ * Both surfaces dim the tiles rather than inverting them. Inverting gives you a
+ * photographic negative where the sea is orange, which looks striking and is
+ * useless for finding your bay.
+ */
+.controls .control-label{ font-size:12.5px; color:var(--foam-dim); display:block; margin-bottom:3px; }
+
+.controls .map-thumb{
+  display:block; position:relative; overflow:hidden;
+  width:240px; height:104px; padding:0;
+  border:1px solid var(--line-strong); background: var(--panel-2);
+  cursor:pointer;
+}
+.controls .map-thumb:hover{ border-color: var(--brass); }
+.controls .map-thumb:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+.map-thumb-tiles{ position:absolute; inset:0; filter: brightness(0.72) saturate(0.7) contrast(1.05); }
+.map-thumb-tiles img{ position:absolute; max-width:none; display:block; }
+/* Dead centre, because that's what the tile offsets were built around. */
+.map-thumb-pin{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); }
+.map-thumb-credit{
+  position:absolute; right:0; bottom:0; padding:1px 4px;
+  background: rgba(10,32,35,0.78); color: var(--foam-dim); font-size:9.5px; line-height:1.4;
+}
+
+/* The buttons sit level with the bottom of the panel, with the place name above. */
+.controls .location-actions{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+.controls .location-actions button{ margin:0; }
+
+/* The pin: the site's own marker, drawn in CSS, so the tiles stay the only
+   thing either map has to fetch. */
+.map-pin{ cursor:grab; }
+.map-pin:active{ cursor:grabbing; }
+.map-pin-dot{
+  display:block; width:14px; height:14px; margin:2px;
+  border-radius:50%; background: var(--brass);
+  border:2px solid var(--ink); box-shadow: 0 0 0 2px var(--brass-dim);
+}
+
+/* The picker dialog. A native <dialog>, so Escape, focus trapping and the
+   backdrop are the browser's problem rather than ours. */
+.picker{
+  border:1px solid var(--line-strong); background: var(--panel); color: var(--foam);
+  padding:0; width:min(760px, calc(100vw - 32px)); max-width:none;
+}
+.picker::backdrop{ background: rgba(5,16,18,0.72); }
+.picker-body{ padding:20px 22px 18px; }
+.picker h2{ font-family:'Fraunces', serif; font-weight:600; font-size:20px; margin:0 0 4px; }
+.picker-hint{ margin:0 0 12px; font-size:13px; color:var(--foam-dim); display:flex; gap:10px; flex-wrap:wrap; }
+.picker-coords{ color:var(--foam); font-variant-numeric: tabular-nums; }
+.picker-map{
+  height:min(58vh, 460px); width:100%;
+  border:1px solid var(--line-strong); background: var(--panel-2); cursor: crosshair;
+}
+.picker-map .leaflet-tile-pane{ filter: brightness(0.72) saturate(0.7) contrast(1.05); }
+.picker-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:14px; }
+.picker-actions button{
+  background: transparent; border:1px solid var(--line-strong); color: var(--foam-dim);
+  padding:8px 16px; font-size:13px; cursor:pointer; font-family:'Work Sans',sans-serif;
+}
+.picker-actions button:hover{ border-color: var(--foam-dim); color: var(--foam); }
+.picker-actions button.primary{ border-color: var(--brass-dim); color: var(--brass); }
+.picker-actions button.primary:hover{ border-color: var(--brass); }
+.picker-actions button:disabled{ opacity:0.35; cursor:default; }
+.picker-actions button:disabled:hover{ border-color: var(--line-strong); color: var(--foam-dim); }
+
+@media (max-width:520px){
+  .controls .map-thumb{ width:100%; height:120px; }
+  .controls .location-field{ width:100%; }
+  .picker-map{ height:min(52vh, 360px); }
+}
+
+/**
+ * Leaflet's own chrome, repainted: the defaults are white boxes on a light grey
+ * map, built for a white page.
+ *
+ * Everything here is qualified with `.picker` on top of `.picker-map` purely to
+ * win on specificity. leaflet.css is injected at runtime and therefore lands
+ * after this file, so anything that merely ties loses — which is exactly how
+ * the attribution box stayed white the first time round.
+ */
+.picker .picker-map{ background: var(--panel-2); }
+.picker .picker-map .leaflet-bar a,
+.picker .picker-map .leaflet-bar a:hover{
+  background: var(--panel); color: var(--foam); border-bottom-color: var(--line);
+}
+.picker .picker-map .leaflet-bar a:hover{ color: var(--brass); }
+.picker .picker-map .leaflet-bar{ border:1px solid var(--line-strong); box-shadow:none; }
+.picker .picker-map .leaflet-control-attribution{
+  background: rgba(10,32,35,0.82); color: var(--foam-dim); font-size:10.5px;
+}
+.picker .picker-map .leaflet-control-attribution a{ color: var(--foam-dim); }
+.picker .picker-map .leaflet-control-attribution a:hover{ color: var(--brass); }
+
 .controls .place{font-size:13px; color:var(--foam-dim);}
 .controls .tide-status{ font-size:12px; color:var(--foam-dim); width:100%; }
 /* A short row, not a directory: the full list lives on /locations. */
