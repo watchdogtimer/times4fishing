@@ -108,3 +108,48 @@ describe('drawn moon phase', () => {
     }
   });
 });
+
+describe('new and full moon days', () => {
+  test('exactly one new and one full per lunar cycle, no repeats', async () => {
+    // The bug this guards: thresholding illumination marks three days running,
+    // because the moon reads as 99%+ lit for well over a day either side of full.
+    const { computeDayForecast } = await import('../src/core/day.js');
+    const { default: fishing } = await import('../src/profiles/fishing.js');
+
+    const marks = [];
+    for (let i = 0; i < 120; i++) {
+      const date = new Date(2026, 0, 1 + i, 12);
+      const { phase } = computeDayForecast({
+        profile: fishing, date, latitude: 32.7157, longitude: -117.1611,
+        tides: [], utcOffsetHours: 8,
+      });
+      assert.ok(!(phase.isFull && phase.isNew), `${date.toDateString()} is both`);
+      if (phase.isFull || phase.isNew) marks.push({ i, kind: phase.isFull ? 'full' : 'new' });
+    }
+
+    // Roughly 120 / 29.53 = 4 of each, and they must alternate.
+    const fulls = marks.filter((m) => m.kind === 'full').length;
+    const news = marks.filter((m) => m.kind === 'new').length;
+    assert.ok(fulls >= 3 && fulls <= 5, `${fulls} full moons in 120 days`);
+    assert.ok(news >= 3 && news <= 5, `${news} new moons in 120 days`);
+    for (let i = 1; i < marks.length; i++) {
+      assert.notEqual(marks[i].kind, marks[i - 1].kind, 'two of the same in a row');
+      const gap = marks[i].i - marks[i - 1].i;
+      assert.ok(gap > 10 && gap < 20, `${gap} days between milestones`);
+    }
+  });
+
+  test('a marked day really is at the extreme of illumination', async () => {
+    const { computeDayForecast } = await import('../src/core/day.js');
+    const { default: fishing } = await import('../src/profiles/fishing.js');
+    for (let i = 0; i < 60; i++) {
+      const date = new Date(2026, 0, 1 + i, 12);
+      const { phase } = computeDayForecast({
+        profile: fishing, date, latitude: 32.7157, longitude: -117.1611,
+        tides: [], utcOffsetHours: 8,
+      });
+      if (phase.isFull) assert.ok(phase.illuminatedFraction > 0.985, `full but ${phase.illuminatedFraction}`);
+      if (phase.isNew) assert.ok(phase.illuminatedFraction < 0.015, `new but ${phase.illuminatedFraction}`);
+    }
+  });
+});

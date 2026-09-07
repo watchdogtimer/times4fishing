@@ -8,6 +8,7 @@
 
 import { bestWindow, secondBestWindow } from '../core/day.js';
 import { formatClockTime, formatClockTimeCompact, isSameDay, toDateKey } from '../core/time.js';
+import { renderMoonPhase } from './moon-phase.js';
 
 const DAYS_PER_WEEK = 7;
 const MAX_RATING = 5;
@@ -117,7 +118,7 @@ function buildDayCell(date, today, forecast, onSelectDay, profile, dayWeather) {
   // Two times rather than one: the best window often isn't the one that fits
   // your day, and the runner-up is a real alternative about a third of the time.
   cell.innerHTML = `
-    <div class="num">${date.getDate()}</div>
+    <div class="num">${date.getDate()}${renderMoonMarker(forecast.phase)}</div>
     <div class="rating" title="${tier.name} — ${forecast.rating}/${MAX_RATING}">${renderDots(
       forecast.rating,
     )}</div>
@@ -133,6 +134,20 @@ function buildDayCell(date, today, forecast, onSelectDay, profile, dayWeather) {
 
   cell.addEventListener('click', () => onSelectDay(forecast, cell));
   return cell;
+}
+
+/**
+ * A moon on the two days a month that have one.
+ *
+ * Only the exact new and full days, which is what makes it worth having: a
+ * marker on every day would be wallpaper. Both are drawn by the same code as
+ * the header moon, where they land on its degenerate cases — a complete disc
+ * and an empty one.
+ */
+function renderMoonMarker(phase) {
+  if (!phase?.isFull && !phase?.isNew) return '';
+  const label = phase.isFull ? 'Full moon' : 'New moon';
+  return `<span class="day-moon" title="${label}">${renderMoonPhase(phase, { label })}</span>`;
 }
 
 /** Both spellings of a time; the stylesheet shows whichever the column can fit. */

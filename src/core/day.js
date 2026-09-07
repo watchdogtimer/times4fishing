@@ -36,7 +36,8 @@ import { localToUtcOffsetHours } from './time.js';
  * @property {number|null} moonset
  * @property {number|null} moonOverhead  Upper transit, moon at its highest.
  * @property {number|null} moonUnderfoot Lower transit, moon at its lowest.
- * @property {{illuminatedFraction: number, name: string}} phase
+ * @property {{illuminatedFraction: number, name: string, waxing: boolean,
+ *   cycleFraction: number, isFull: boolean, isNew: boolean}} phase
  * @property {TideEvent[]} tides
  * @property {{hour: number, height: number}[]} tideCurve Continuous height
  *   through the day, sampled between the extremes. Empty when there's no
@@ -113,7 +114,10 @@ export function computeDayFacts({
     moonOverhead: solve({ positionFn: moonPosition, hourAngleDeg: 0 }),
     moonUnderfoot: solve({ positionFn: moonPosition, hourAngleDeg: 180 }),
     // Sample the phase at local midday, the middle of the day being rated.
-    phase: moonPhase(toEpochDays(year, month, dayOfMonth, 12) + utcOffsetDays),
+    phase: {
+      ...moonPhase(toEpochDays(year, month, dayOfMonth, 12) + utcOffsetDays),
+      ...moonMilestone(toEpochDays(year, month, dayOfMonth, 0) + utcOffsetDays),
+    },
     tides,
     tideCurve,
   };
@@ -127,6 +131,30 @@ export function computeDayFacts({
  * @param {object} [options.settings] Passed through to the profile untouched.
  * @returns {DayFacts & {windows: Window[], score: number, rating: number}}
  */
+/**
+ * Whether the exact moment of a new or full moon lands inside this local day.
+ *
+ * Thresholding the illuminated fraction doesn't work: the moon reads as more
+ * than 99% lit for well over a day either side of full, so "is it full?" would
+ * be true three days running. The cycle fraction is monotonic instead — it runs
+ * 0 to 1 across the month, passing 0.5 exactly at full and wrapping through 0
+ * exactly at new — so a day owns the event when the crossing falls between its
+ * own midnight and the next.
+ *
+ * @param {number} midnightEpochDays Local midnight, as absolute epoch-days.
+ * @returns {{isFull: boolean, isNew: boolean}}
+ */
+function moonMilestone(midnightEpochDays) {
+  const start = moonPhase(midnightEpochDays).cycleFraction;
+  const end = moonPhase(midnightEpochDays + 1).cycleFraction;
+
+  return {
+    // The fraction only runs backwards when it has wrapped past new.
+    isNew: end < start,
+    isFull: start < 0.5 && end >= 0.5,
+  };
+}
+
 export function computeDayForecast({ profile, settings = {}, ...factOptions }) {
   const facts = computeDayFacts(factOptions);
   return { ...facts, ...profile.rateDay(facts, settings) };

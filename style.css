@@ -174,6 +174,10 @@ header p{ margin:0; max-width: 46ch; color: var(--foam-dim); font-size: 14.5px; 
 
 /* Rating dots. Colour and count both encode the rating, so the ranking still
    reads without relying on colour. */
+.cell .num{ display:flex; align-items:center; gap:6px; }
+/* New and full moon only, so it stays a small event rather than decoration. */
+.cell .day-moon{ display:inline-flex; }
+.cell .day-moon .moon-disc{ width:13px; height:13px; }
 .cell .rating{ display:flex; gap:3px; margin:7px 0 9px; }
 .cell .rating i{ width:7px; height:7px; border-radius:50%; display:block; }
 .cell .rating i.off{ background: rgba(228,239,236,0.13); }

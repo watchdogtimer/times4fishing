@@ -342,7 +342,8 @@ const PHASE_NAMES = [
  * straddles the wrap point at 0.
  *
  * @param {number} epochDays
- * @returns {{illuminatedFraction: number, name: string, waxing: boolean}}
+ * @returns {{illuminatedFraction: number, name: string, waxing: boolean,
+ *   cycleFraction: number}}
  */
 export function moonPhase(epochDays) {
   const moon = moonPosition(epochDays);
@@ -361,6 +362,11 @@ export function moonPhase(epochDays) {
   return {
     illuminatedFraction,
     name: PHASE_NAMES[nameIndex],
+    // How far through the cycle, 0 at new and 0.5 at full. Callers use it to
+    // find the exact moment of a new or full moon, which the illuminated
+    // fraction can't give them: it sits at 100% for a day and a half either
+    // side of full, so it says "nearly full" for three days running.
+    cycleFraction,
     // Which limb is lit. Drawing the phase needs this and the fraction alone
     // can't supply it: at 23% lit, waxing and waning are mirror images.
     waxing: cycleFraction < 0.5,
