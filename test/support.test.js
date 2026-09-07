@@ -21,12 +21,21 @@ describe('support link', () => {
     assert.equal(supportLinkHtml(), '');
   });
 
-  test('ships unconfigured rather than pointing somewhere plausible', () => {
-    // A default of "buymeacoffee.com/someone" would look harmless in a diff and
-    // take real money to the wrong account.
-    const config = read('../src/config.js');
-    assert.match(config, /export const SUPPORT_URL = '';/,
-      'SUPPORT_URL should ship empty — set it in your own deployment');
+  test('the configured URL is a real https address, not a page id or a snippet', () => {
+    // Ko-fi's embed gives you a page id; pasting that as a URL half-works via a
+    // redirect, and pasting the whole script tag would render as text.
+    if (!SUPPORT_URL) return;
+    assert.match(SUPPORT_URL, /^https:\/\//, 'must be an absolute https URL');
+    assert.doesNotMatch(SUPPORT_URL, /<|script/i, 'looks like an embed snippet, not a URL');
+    assert.ok(new URL(SUPPORT_URL).pathname.length > 1, 'no path — is this just the domain?');
+  });
+
+  test('no third-party script rides along with it', () => {
+    // The site promises no ads and no accounts; a donation widget phoning home
+    // would be the first thing to make that untrue.
+    for (const file of ['../index.html', '../src/config.js', '../src/render/html.js']) {
+      assert.doesNotMatch(read(file), /ko-fi\.com\/cdn|kofiwidget/i, `${file} embeds Ko-fi JS`);
+    }
   });
 
   test('when set, it is a real external link that cannot be tampered with', () => {

@@ -44,11 +44,19 @@ export const PROFILES = { fishing, tidepooling };
  * One account covers both sites: the reader is thanking whoever built the
  * thing, not the domain they happened to land on. Put the full URL here —
  * "https://ko-fi.com/yourname" or "https://buymeacoffee.com/yourname" — and it
- * appears in the footer of every page. It ships empty rather than pointing at a
- * placeholder account, because a plausible-looking default would take real
- * money to a stranger and look harmless in a diff.
+ * appears in the footer of every page.
+ *
+ * The canonical username URL rather than the page id Ko-fi's embed snippet
+ * uses, since the id just redirects here and a redirect on every click is a
+ * hop for nothing.
+ *
+ * Ko-fi's own recommendation is a script tag from storage.ko-fi.com that draws
+ * a button. Not used: this site tells the reader it carries no ads and no
+ * accounts, and the first third-party script on the page is where that stops
+ * being straightforwardly true. A link does the same job with no dependency,
+ * no latency, and in the site's own colours.
  */
-export const SUPPORT_URL = '';
+export const SUPPORT_URL = 'https://ko-fi.com/tomhartwell';
 
 /** The label on that link. Kept beside the URL so the tone stays together. */
 export const SUPPORT_LABEL = 'Buy me a coffee';
