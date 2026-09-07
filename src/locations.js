@@ -392,6 +392,26 @@ export function locationBySlug(slug) {
 }
 
 /**
+ * The curated locations closest to a point, nearest first.
+ *
+ * Deliberately a short list rather than all 22. The full set belongs on the
+ * index page; what earns space beside the calendar is only the handful you
+ * could actually get to, which also means the list is empty — and renders
+ * nothing — for anyone inland.
+ *
+ * @returns {{location: Location, miles: number}[]}
+ */
+export function nearbyLocations(latitude, longitude, { limit = 3, withinMiles = 120 } = {}) {
+  return LOCATIONS.map((location) => ({
+    location,
+    miles: distanceInMiles(latitude, longitude, location.latitude, location.longitude),
+  }))
+    .filter((entry) => entry.miles <= withinMiles)
+    .sort((a, b) => a.miles - b.miles)
+    .slice(0, limit);
+}
+
+/**
  * The offshore point for whichever curated location is nearest, if one is close.
  *
  * The app is coordinate-driven — you can type in anywhere — but a marine point

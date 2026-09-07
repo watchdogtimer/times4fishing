@@ -9,6 +9,7 @@
  */
 
 import { activeProfile, supportLinkHtml } from './config.js';
+import { escapeHtml } from './core/html.js';
 import { computeDayForecast } from './core/day.js';
 import {
   emptyTideData,
@@ -17,7 +18,7 @@ import {
   sampleTideCurve,
 } from './core/tides.js';
 import { addDays, isSameDay, startOfDay, toDateKey } from './core/time.js';
-import { nearestMarinePoint } from './locations.js';
+import { nearbyLocations, nearestMarinePoint } from './locations.js';
 import { loadSettings, saveSettings } from './core/settings.js';
 import { emptyOutlook, fetchWeatherOutlook } from './core/weather.js';
 import { stationTideStats } from './profiles/tidepooling.js';
@@ -51,6 +52,7 @@ const elements = {
   previousPage: document.getElementById('prevPage'),
   nextPage: document.getElementById('nextPage'),
   includeSleeping: document.getElementById('includeSleeping'),
+  nearby: document.getElementById('nearby'),
 };
 
 const state = {
@@ -274,6 +276,7 @@ function render() {
       },
     });
 
+  renderNearby();
   elements.rangeLabel.textContent = formatRange(start, end);
   elements.previousPage.disabled = state.pageOffset <= 0;
 
@@ -299,6 +302,38 @@ function render() {
       </div>
       ${renderMoonPhase(phase, { label: `${phase.name}, ${percent}% illuminated` })}`;
   }
+}
+
+/**
+ * Point at the written-up places near wherever the calendar currently is.
+ *
+ * The app is coordinate-driven, so it otherwise has no idea those pages exist
+ * and neither does the reader: the homepage had no link out at all, which left
+ * search engines as the only route in. This is the route for people.
+ *
+ * Nothing renders when there is no curated location within reach, which is the
+ * honest outcome for most of the map rather than a list of places a thousand
+ * miles away.
+ */
+function renderNearby() {
+  const nearby = nearbyLocations(state.latitude, state.longitude);
+  if (nearby.length === 0) {
+    elements.nearby.hidden = true;
+    return;
+  }
+
+  const links = nearby
+    .map(({ location, miles }) => {
+      const distance = miles < 1 ? 'here' : `${Math.round(miles)} mi`;
+      return `<a href="/${profile.pathPrefix}/${location.slug}/">${escapeHtml(location.name)}` +
+        `<span class="miles">${distance}</span></a>`;
+    })
+    .join('');
+
+  elements.nearby.innerHTML =
+    `<span class="nearby-label">Written up nearby</span>${links}` +
+    `<a class="nearby-all" href="/${profile.pathPrefix}/">All locations</a>`;
+  elements.nearby.hidden = false;
 }
 
 function showDay(forecast, cell) {
