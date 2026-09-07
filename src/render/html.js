@@ -21,15 +21,12 @@
  */
 
 import { canonicalOrigin, supportLinkHtml } from '../config.js';
+import { escapeHtml } from '../core/html.js';
 import { bestWindow } from '../core/day.js';
 import { formatClockTime, toDateKey } from '../core/time.js';
 
-const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-
 /** Escape text for HTML. Everything interpolated below goes through this. */
-export function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => ESCAPES[character]);
-}
+export { escapeHtml };
 
 /** "Saturday, 10 October 2026", in the location's own calendar. */
 function longDate(date) {

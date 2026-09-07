@@ -22,6 +22,12 @@ import tidepooling from './profiles/tidepooling.js';
  * @property {string} headline     The <h1>, e.g. "Best times for ocean fishing".
  *   Says what the site is for; `siteName` says who it is.
  * @property {string} title        Full <title>.
+ * @property {string} pathPrefix   First URL segment for location pages. Both
+ *   sites use the same one: the hostname already decides which site you are on,
+ *   so the path never had to carry that too.
+ * @property {string[]} [legacyPathPrefixes] Prefixes this site used to answer
+ *   on. Kept so old URLs redirect rather than 404 — cheap now, and the only
+ *   thing that makes renaming a published path safe.
  * @property {string} factsHeading Heading over the sun/moon column.
  * @property {(forecast: object) => [string, number|null][]} dayFacts
  *   The labelled times worth listing for this activity.

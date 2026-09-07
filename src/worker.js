@@ -82,6 +82,9 @@ export default {
     if (url.pathname === '/llms.txt') return llmsTxt(env, profile);
     if (url.pathname === '/sitemap.xml') return sitemapXml(env, profile);
 
+    const moved = legacyRedirect(profile, url);
+    if (moved) return moved;
+
     const contentPath = matchContentPath(profile, url.pathname);
     if (contentPath) {
       return serveContentPage({
@@ -121,6 +124,26 @@ export default {
  * URL shape. Two domains sharing one deployment shouldn't mean two ways to
  * reach the same page.
  */
+/**
+ * Send a retired path to its replacement, permanently.
+ *
+ * The location pages were first published under a prefix that described the
+ * data rather than the page — /tides on the fishing site, /spots on the other.
+ * Renaming a URL orphans whatever already points at it, so the old shapes keep
+ * answering with a 301 instead of a 404. This costs one string comparison and
+ * removes the only real reason not to fix a bad path.
+ *
+ * @returns {Response|null}
+ */
+function legacyRedirect(profile, url) {
+  const segments = url.pathname.replace(/^\/|\/$/g, '').split('/');
+  if (!profile.legacyPathPrefixes?.includes(segments[0])) return null;
+
+  segments[0] = profile.pathPrefix;
+  const destination = `/${segments.join('/')}${segments.length > 1 ? '/' : '/'}`;
+  return Response.redirect(new URL(destination + url.search, url.origin), 301);
+}
+
 function matchContentPath(profile, pathname) {
   const segments = pathname.replace(/^\/|\/$/g, '').split('/');
   if (segments[0] !== profile.pathPrefix) return null;

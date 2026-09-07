@@ -310,7 +310,9 @@ export default {
       <p>Solunar theory has a real physical basis (lunar gravity drives tides, and moving water is a well-documented feeding trigger) but the specific claim of sharp 1–2 hour "best window" spikes is folk-science in origin, not a peer-reviewed model — treat the rating as one input, not gospel. Weather, pressure, and species behavior matter too and aren't modeled here.</p>`,
   /* --- Server-rendered pages ------------------------------------- */
 
-  pathPrefix: 'tides',
+  pathPrefix: 'locations',
+  /** Was 'tides', which described the input data rather than the page. */
+  legacyPathPrefixes: ['tides'],
   pageTitleVerb: 'Fishing times',
   locations: LOCATIONS,
   tableTimeHeading: 'Best window',

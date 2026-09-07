@@ -92,9 +92,25 @@ describe('profile selection', () => {
     assert.equal(new Set(all).size, all.length, 'a hostname is claimed twice');
   });
 
-  test('the two sites never claim the same path prefix', () => {
-    const prefixes = Object.values(PROFILES).map((profile) => profile.pathPrefix);
-    assert.equal(new Set(prefixes).size, prefixes.length);
+  test('the sites may share a path prefix, because the hostname decides', () => {
+    // They deliberately do share one now. What has to stay true is that the
+    // hostname alone picks the site, so the same path on two domains reaches
+    // two different pages rather than one shadowing the other.
+    for (const profile of Object.values(PROFILES)) {
+      for (const hostname of profile.hostnames) {
+        assert.equal(activeProfile({ hostname, search: '' }).id, profile.id,
+          `${hostname} should reach ${profile.id} regardless of path`);
+      }
+    }
+  });
+
+  test('every retired prefix redirects somewhere real, and none is still in use', () => {
+    const live = new Set(Object.values(PROFILES).map((profile) => profile.pathPrefix));
+    for (const profile of Object.values(PROFILES)) {
+      for (const legacy of profile.legacyPathPrefixes ?? []) {
+        assert.ok(!live.has(legacy), `${legacy} is both retired and in use`);
+      }
+    }
   });
 });
 

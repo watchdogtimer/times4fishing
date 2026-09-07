@@ -396,7 +396,9 @@ export default {
       <p><b>Get there early and watch the water.</b> Walk out on the tail of the ebb and follow it down rather than arriving at the low itself. Surf and swell matter enormously for both safety and visibility and aren't yet modelled here, so check a marine forecast before you go, and never turn your back on the sea.</p>`,
   /* --- Server-rendered pages ------------------------------------- */
 
-  pathPrefix: 'spots',
+  pathPrefix: 'locations',
+  /** Was 'spots', which wasn't wrong so much as it said nothing. */
+  legacyPathPrefixes: ['spots'],
   pageTitleVerb: 'Tidepooling times',
   locations: LOCATIONS,
   tableTimeHeading: 'Low water',
