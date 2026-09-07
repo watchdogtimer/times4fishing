@@ -251,8 +251,19 @@ function localDateKey(date) {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-/** Latest water temperature at a NOAA station, where it has a thermometer. */
+/**
+ * Latest water temperature at a NOAA station, where it has a thermometer.
+ *
+ * The data API only knows seven-digit station ids, because those are the
+ * physical installations, the ones that can carry a sensor at all. A
+ * subordinate prediction station like `TWC0405` ("Point Loma") is an offset
+ * applied to one of those rather than a place with instruments, so there's
+ * nothing to ask for and NOAA says as much with a 400. We don't ask: it isn't
+ * a failure worth a line in the console, it's a station that doesn't have one.
+ */
 async function fetchWaterTemperature(stationId) {
+  if (!/^\d{7}$/.test(stationId)) return null;
+
   const params = new URLSearchParams({
     product: 'water_temperature',
     application: 'times4-app',
