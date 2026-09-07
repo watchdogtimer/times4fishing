@@ -38,6 +38,33 @@ import tidepooling from './profiles/tidepooling.js';
 
 export const PROFILES = { fishing, tidepooling };
 
+/**
+ * Where to send someone who wants to chip in. Empty means no link is shown.
+ *
+ * One account covers both sites: the reader is thanking whoever built the
+ * thing, not the domain they happened to land on. Put the full URL here —
+ * "https://ko-fi.com/yourname" or "https://buymeacoffee.com/yourname" — and it
+ * appears in the footer of every page. It ships empty rather than pointing at a
+ * placeholder account, because a plausible-looking default would take real
+ * money to a stranger and look harmless in a diff.
+ */
+export const SUPPORT_URL = '';
+
+/** The label on that link. Kept beside the URL so the tone stays together. */
+export const SUPPORT_LABEL = 'Buy me a coffee';
+
+/**
+ * The footer support link, or an empty string when none is configured.
+ *
+ * `noopener` because it opens a payment page, and `nofollow` because a donation
+ * link is not an editorial endorsement and shouldn't pass ranking.
+ */
+export function supportLinkHtml() {
+  if (!SUPPORT_URL) return '';
+  const url = SUPPORT_URL.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return `<a class="support-link" href="${url}" rel="noopener nofollow" target="_blank">${SUPPORT_LABEL}</a>`;
+}
+
 /** Every hostname a real site answers on. */
 const PRODUCTION_HOSTNAMES = new Set(
   Object.values(PROFILES).flatMap((profile) => profile.hostnames),

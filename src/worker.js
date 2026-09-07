@@ -22,7 +22,12 @@
  * static assets, untouched.
  */
 
-import { activeProfile, canonicalOrigin, isProductionHostname } from './config.js';
+import {
+  activeProfile,
+  canonicalOrigin,
+  isProductionHostname,
+  supportLinkHtml,
+} from './config.js';
 import { bestDay, forecastRange } from './core/schedule.js';
 import { secondsUntilMidnightInZone } from './core/time.js';
 import { locationBySlug } from './locations.js';
@@ -223,6 +228,16 @@ function rewriteShell(assetResponse, profile, env) {
     })
     .on('html', { element: (element) => element.setAttribute('data-profile', profile.id) })
     .on('#headline', { element: (element) => element.setInnerContent(profile.headline) })
+    .on('#support', {
+      element: (element) => {
+        const link = supportLinkHtml();
+        // The slot ships hidden so nothing flashes up before the script runs;
+        // filling it has to lift that, or the link renders invisibly.
+        if (!link) return;
+        element.setInnerContent(link, { html: true });
+        element.removeAttribute('hidden');
+      },
+    })
     .on('#tagline', { element: (element) => element.setInnerContent(profile.tagline) })
     .on('#aboutBody', {
       element: (element) => element.setInnerContent(profile.aboutHtml, { html: true }),

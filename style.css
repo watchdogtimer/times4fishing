@@ -357,3 +357,15 @@ a:hover{ color: var(--foam); }
   color:var(--tide-low); border:1px solid var(--line); border-radius:4px;
   padding:1px 6px;
 }
+
+
+/* ---------- Support link ---------- */
+/* Deliberately quiet: the promise on the tin is "no ads, no accounts", and a
+   loud donation button would read as the first crack in that. */
+.support{ margin:22px 0 0; text-align:center; }
+.support-link{
+  display:inline-block; font-size:13px; color:var(--foam-dim);
+  border:1px solid var(--line-strong); padding:7px 14px; text-decoration:none;
+}
+.support-link:hover{ color:var(--brass); border-color:var(--brass-dim); }
+.page-footer .support{ margin-top:14px; text-align:left; }

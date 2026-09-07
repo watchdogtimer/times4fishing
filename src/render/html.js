@@ -20,7 +20,7 @@
  *    place's midnight, which is exactly what makes it cacheable.
  */
 
-import { canonicalOrigin } from '../config.js';
+import { canonicalOrigin, supportLinkHtml } from '../config.js';
 import { bestWindow } from '../core/day.js';
 import { formatClockTime, toDateKey } from '../core/time.js';
 
@@ -92,6 +92,7 @@ ${body}
   <a href="https://stjarnhimlen.se/comp/ppcomp.html">Paul Schlyter's formulas</a>.
   <a href="/">Open the interactive calendar</a> to change location or look at a
   single day in detail.</p>
+  ${supportLinkHtml() ? `<p class="support">${supportLinkHtml()}</p>` : ''}
 </footer>
 </div>
 </body>

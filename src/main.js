@@ -8,7 +8,7 @@
  * wrong.
  */
 
-import { activeProfile } from './config.js';
+import { activeProfile, supportLinkHtml } from './config.js';
 import { computeDayForecast } from './core/day.js';
 import {
   emptyTideData,
@@ -156,6 +156,14 @@ function applyProfileChrome() {
     if (element) element.innerHTML = html;
   };
   set('headline', profile.headline);
+
+  // Hidden in the markup by default, so nothing flashes up before this runs.
+  const support = document.getElementById('support');
+  const supportLink = supportLinkHtml();
+  if (support) {
+    support.innerHTML = supportLink;
+    support.hidden = !supportLink;
+  }
   set('tagline', profile.tagline);
   set('aboutBody', profile.aboutHtml);
   set(
