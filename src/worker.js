@@ -27,6 +27,7 @@ import {
   canonicalOrigin,
   isProductionHostname,
   supportLinkHtml,
+  swapIconProfile,
 } from './config.js';
 import { bestDay, forecastRange } from './core/schedule.js';
 import { secondsUntilMidnightInZone } from './core/time.js';
@@ -250,6 +251,14 @@ function rewriteShell(assetResponse, profile, env) {
       element: (element) => element.setAttribute('content', profile.tagline),
     })
     .on('html', { element: (element) => element.setAttribute('data-profile', profile.id) })
+    // The shell ships the fishing icons hard-coded, since a static file can
+    // only name one set. Every icon lives under /icons/<profile id>/, so
+    // swapping that one path segment is the whole rewrite.
+    .on('link[href^="/icons/"]', {
+      element: (element) => {
+        element.setAttribute('href', swapIconProfile(element.getAttribute('href') ?? '', profile));
+      },
+    })
     .on('#headline', { element: (element) => element.setInnerContent(profile.headline) })
     .on('#support', {
       element: (element) => {

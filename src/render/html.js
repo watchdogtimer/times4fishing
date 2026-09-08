@@ -20,7 +20,7 @@
  *    place's midnight, which is exactly what makes it cacheable.
  */
 
-import { canonicalOrigin, supportLinkHtml } from '../config.js';
+import { canonicalOrigin, iconLinksHtml, supportLinkHtml } from '../config.js';
 import { escapeHtml } from '../core/html.js';
 import { bestWindow } from '../core/day.js';
 import { formatClockTime, toDateKey } from '../core/time.js';
@@ -75,6 +75,7 @@ ${noindex ? '<meta name="robots" content="noindex,nofollow">' : ''}
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta name="twitter:card" content="summary">
+${iconLinksHtml(profile)}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">

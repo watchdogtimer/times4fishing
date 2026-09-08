@@ -8,7 +8,8 @@
     "dev:tidepooling": "wrangler dev --host times4tidepooling.com --persist-to ../.times4-wrangler-state",
     "check": "npm test && wrangler deploy --dry-run",
     "deploy": "npm test && wrangler deploy",
-    "golden": "node scripts/regenerate-golden.js"
+    "golden": "node scripts/regenerate-golden.js",
+    "icons": "node scripts/regenerate-icons.js"
   },
   "devDependencies": {
     "wrangler": "^4.129.0"

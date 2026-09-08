@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"
+     aria-label="An ochre sea star in a rock pool">
+  <!--
+    times4tidepooling.
+
+    An ochre sea star in a pool the tide left behind: the thing you walked down
+    to the rocks to find, and the reason the site exists. One arm is short,
+    because sea stars regrow them. That is true of the animal, and it also
+    stops the shape being a perfectly symmetric cartoon star.
+
+    The star is five round-capped strokes radiating from one centre point
+    rather than a traced outline, which keeps it plump at 16px where a pointed
+    star turns to mush. The colours are the ink, ochre and teal tokens from
+    style.css, and the background repeats the body gradient, so the tile looks
+    like the page it belongs to.
+  -->
+  <defs>
+    <radialGradient id="sky" cx="15%" cy="-10%" r="115%">
+      <stop offset="0" stop-color="#1D3442"/>
+      <stop offset=".6" stop-color="#101A24"/>
+    </radialGradient>
+    <clipPath id="tile"><rect width="64" height="64" rx="13"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="64" height="64" fill="url(#sky)"/>
+    <circle cx="32" cy="33" r="25" fill="#3E7F91" opacity=".9"/>
+    <circle cx="32" cy="33" r="25" fill="none" stroke="#E8EEF2" stroke-width="1.5" opacity=".3"/>
+    <path fill="none" stroke="#E08A3C" stroke-width="12.5" stroke-linecap="round"
+          d="M32 33 28.25 17.96M32 33 45.14 24.79M32 33 40.31 39.97M32 33 26.19 47.37M32 33 16.54 31.92"/>
+    <circle cx="32" cy="33" r="7.5" fill="#E08A3C"/>
+    <!-- the pits on the arms; they only really show above 32px -->
+    <g fill="#101A24" opacity=".5">
+      <circle cx="29.53" cy="23.07" r="1.5"/>
+      <circle cx="40.68" cy="27.58" r="1.5"/>
+      <circle cx="37.49" cy="37.6" r="1.5"/>
+      <circle cx="28.17" cy="42.49" r="1.5"/>
+      <circle cx="21.79" cy="32.29" r="1.5"/>
+      <circle cx="32" cy="33" r="1.88"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"
+     aria-label="A crescent moon bent into a fish hook">
+  <!--
+    times4fishing.
+
+    The whole site rests on one idea: the moon decides when the fish feed. So
+    the icon is one shape doing two jobs. The crescent is both the moon and the
+    bend of a hook, with a shank and an eye on the right and a barb on the
+    point. At 16px it reads as a hook, at 180px it goes back to being a moon.
+
+    The crescent is an 18.5r circle at (30,36) with a 17r circle at (35,23.5)
+    taken out of it, so two arcs are the entire shape and it stays crisp at any
+    size. The colours are the ink and brass tokens from style.css, and the
+    background repeats the body gradient, so the tile looks like the page it
+    belongs to.
+  -->
+  <defs>
+    <radialGradient id="sky" cx="15%" cy="-10%" r="115%">
+      <stop offset="0" stop-color="#123840"/>
+      <stop offset=".6" stop-color="#0A2023"/>
+    </radialGradient>
+    <clipPath id="tile"><rect width="64" height="64" rx="13"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="64" height="64" fill="url(#sky)"/>
+    <path fill="#D6A24B" d="M18.08 21.85A18.5 18.5 0 1 0 48.39 33.98A17 17 0 0 1 18.08 21.85Z"/>
+    <!-- the barb, sitting just behind the point -->
+    <path fill="#D6A24B" d="M17.6 22.3 15.9 24.1 11.2 25.4 16.2 19.7Z"/>
+    <!-- shank, and the eye you tie the line to -->
+    <path fill="none" stroke="#D6A24B" stroke-width="5" stroke-linecap="round" d="M48.39 33.98V16.5"/>
+    <circle cx="48.39" cy="12" r="4.2" fill="none" stroke="#D6A24B" stroke-width="3.4"/>
+  </g>
+</svg>

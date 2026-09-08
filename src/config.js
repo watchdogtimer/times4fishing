@@ -80,6 +80,35 @@ export function supportLinkHtml() {
   return `<a class="support-link" href="${url}" rel="noopener nofollow" target="_blank">${SUPPORT_LABEL}</a>`;
 }
 
+/**
+ * The favicon links for a site, as they go in a `<head>`.
+ *
+ * Three tags because three different things ask for an icon. The SVG is what
+ * every current browser uses, and the only one that stays sharp on a retina tab
+ * strip; the 32px PNG covers anything that still refuses SVG; the 180px one is
+ * what iOS puts on a home screen.
+ *
+ * The profile id is a directory rather than part of the filename, so switching
+ * sites means swapping one path segment whatever the id looks like. A flat
+ * `fishing-32.png` would work today and quietly break the first time a profile
+ * id has a hyphen in it. A third site needs a third directory and nothing else.
+ */
+export function iconLinksHtml(profile) {
+  return `<link rel="icon" href="${iconBase(profile)}/icon.svg" type="image/svg+xml">
+<link rel="icon" href="${iconBase(profile)}/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="${iconBase(profile)}/touch-180.png">`;
+}
+
+/** Where a site's icons live. */
+export function iconBase(profile) {
+  return `/icons/${profile.id}`;
+}
+
+/** Repoint an icon URL at another site, whichever site wrote it. */
+export function swapIconProfile(href, profile) {
+  return href.replace(/^\/icons\/[^/]+/, iconBase(profile));
+}
+
 /** Every hostname a real site answers on. */
 const PRODUCTION_HOSTNAMES = new Set(
   Object.values(PROFILES).flatMap((profile) => profile.hostnames),

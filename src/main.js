@@ -8,7 +8,7 @@
  * wrong.
  */
 
-import { activeProfile, supportLinkHtml } from './config.js';
+import { activeProfile, supportLinkHtml, swapIconProfile } from './config.js';
 import { escapeHtml } from './core/html.js';
 import { computeDayForecast } from './core/day.js';
 import {
@@ -206,6 +206,9 @@ function applyProfileChrome() {
   document.documentElement.dataset.profile = profile.id;
   document.title = profile.title;
   document.querySelector('meta[name="description"]')?.setAttribute('content', profile.tagline);
+  for (const link of document.querySelectorAll('link[href^="/icons/"]')) {
+    link.setAttribute('href', swapIconProfile(link.getAttribute('href'), profile));
+  }
 
   const set = (id, html) => {
     const element = document.getElementById(id);
